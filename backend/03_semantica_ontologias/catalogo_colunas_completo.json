@@ -1,0 +1,567 @@
+[
+  {
+    "coluna": "hemacias_10e6_uL",
+    "loinc": "789-8",
+    "categoria": "2. HEMOGRAMA COMPLETO"
+  },
+  {
+    "coluna": "hemoglobina_g_dL",
+    "loinc": "718-7",
+    "categoria": "2. HEMOGRAMA COMPLETO"
+  },
+  {
+    "coluna": "hematocrito_pct",
+    "loinc": "4544-3",
+    "categoria": "2. HEMOGRAMA COMPLETO"
+  },
+  {
+    "coluna": "vcm_fL",
+    "loinc": "787-2",
+    "categoria": "2. HEMOGRAMA COMPLETO"
+  },
+  {
+    "coluna": "hcm_pg",
+    "loinc": "785-6",
+    "categoria": "2. HEMOGRAMA COMPLETO"
+  },
+  {
+    "coluna": "chcm_g_dL",
+    "loinc": "786-4",
+    "categoria": "2. HEMOGRAMA COMPLETO"
+  },
+  {
+    "coluna": "rdw_pct",
+    "loinc": "788-0",
+    "categoria": "2. HEMOGRAMA COMPLETO"
+  },
+  {
+    "coluna": "leucocitos_totais_10e3_uL",
+    "loinc": "6690-2",
+    "categoria": "2. HEMOGRAMA COMPLETO"
+  },
+  {
+    "coluna": "neutrofilos_abs_10e3_uL",
+    "loinc": "751-8",
+    "categoria": "2. HEMOGRAMA COMPLETO"
+  },
+  {
+    "coluna": "neutrofilos_pct",
+    "loinc": "770-8",
+    "categoria": "2. HEMOGRAMA COMPLETO"
+  },
+  {
+    "coluna": "bastonetes_pct",
+    "loinc": "763-3",
+    "categoria": "2. HEMOGRAMA COMPLETO"
+  },
+  {
+    "coluna": "segmentados_pct",
+    "loinc": "769-0",
+    "categoria": "2. HEMOGRAMA COMPLETO"
+  },
+  {
+    "coluna": "linfocitos_abs_10e3_uL",
+    "loinc": "731-0",
+    "categoria": "2. HEMOGRAMA COMPLETO"
+  },
+  {
+    "coluna": "linfocitos_pct",
+    "loinc": "736-9",
+    "categoria": "2. HEMOGRAMA COMPLETO"
+  },
+  {
+    "coluna": "monocitos_abs_10e3_uL",
+    "loinc": "742-7",
+    "categoria": "2. HEMOGRAMA COMPLETO"
+  },
+  {
+    "coluna": "monocitos_pct",
+    "loinc": "5905-5",
+    "categoria": "2. HEMOGRAMA COMPLETO"
+  },
+  {
+    "coluna": "eosinofilos_abs_10e3_uL",
+    "loinc": "711-2",
+    "categoria": "2. HEMOGRAMA COMPLETO"
+  },
+  {
+    "coluna": "eosinofilos_pct",
+    "loinc": "713-8",
+    "categoria": "2. HEMOGRAMA COMPLETO"
+  },
+  {
+    "coluna": "basofilos_abs_10e3_uL",
+    "loinc": "704-7",
+    "categoria": "2. HEMOGRAMA COMPLETO"
+  },
+  {
+    "coluna": "basofilos_pct",
+    "loinc": "706-2",
+    "categoria": "2. HEMOGRAMA COMPLETO"
+  },
+  {
+    "coluna": "plaquetas_10e3_uL",
+    "loinc": "777-3",
+    "categoria": "2. HEMOGRAMA COMPLETO"
+  },
+  {
+    "coluna": "vpm_fL",
+    "loinc": "32623-1",
+    "categoria": "2. HEMOGRAMA COMPLETO"
+  },
+  {
+    "coluna": "glicose_jejum_mg_dL",
+    "loinc": "2345-7",
+    "categoria": "3. METABOLISMO DA GLICOSE E PERFIL LIPÍDICO"
+  },
+  {
+    "coluna": "hemoglobina_glicada_hba1c_pct",
+    "loinc": "4548-4",
+    "categoria": "3. METABOLISMO DA GLICOSE E PERFIL LIPÍDICO"
+  },
+  {
+    "coluna": "insulina_basal_uIU_mL",
+    "loinc": "20448-7",
+    "categoria": "3. METABOLISMO DA GLICOSE E PERFIL LIPÍDICO"
+  },
+  {
+    "coluna": "indice_homa_ir",
+    "loinc": "72115-9",
+    "categoria": "3. METABOLISMO DA GLICOSE E PERFIL LIPÍDICO"
+  },
+  {
+    "coluna": "colesterol_total_mg_dL",
+    "loinc": "2093-3",
+    "categoria": "3. METABOLISMO DA GLICOSE E PERFIL LIPÍDICO"
+  },
+  {
+    "coluna": "colesterol_hdl_mg_dL",
+    "loinc": "2085-9",
+    "categoria": "3. METABOLISMO DA GLICOSE E PERFIL LIPÍDICO"
+  },
+  {
+    "coluna": "colesterol_ldl_mg_dL",
+    "loinc": "13457-7",
+    "categoria": "3. METABOLISMO DA GLICOSE E PERFIL LIPÍDICO"
+  },
+  {
+    "coluna": "colesterol_vldl_mg_dL",
+    "loinc": "13458-5",
+    "categoria": "3. METABOLISMO DA GLICOSE E PERFIL LIPÍDICO"
+  },
+  {
+    "coluna": "colesterol_nao_hdl_mg_dL",
+    "loinc": "43396-1",
+    "categoria": "3. METABOLISMO DA GLICOSE E PERFIL LIPÍDICO"
+  },
+  {
+    "coluna": "triglicerideos_mg_dL",
+    "loinc": "2571-8",
+    "categoria": "3. METABOLISMO DA GLICOSE E PERFIL LIPÍDICO"
+  },
+  {
+    "coluna": "apolipoproteina_a1_mg_dL",
+    "loinc": "1869-7",
+    "categoria": "3. METABOLISMO DA GLICOSE E PERFIL LIPÍDICO"
+  },
+  {
+    "coluna": "apolipoproteina_b_mg_dL",
+    "loinc": "1884-6",
+    "categoria": "3. METABOLISMO DA GLICOSE E PERFIL LIPÍDICO"
+  },
+  {
+    "coluna": "lipoproteina_a_mg_dL",
+    "loinc": "10835-7",
+    "categoria": "3. METABOLISMO DA GLICOSE E PERFIL LIPÍDICO"
+  },
+  {
+    "coluna": "creatinina_mg_dL",
+    "loinc": "2160-0",
+    "categoria": "4. FUNÇÃO RENAL E ELETRÓLITOS"
+  },
+  {
+    "coluna": "tfg_estimada_mL_min",
+    "loinc": "33914-3",
+    "categoria": "4. FUNÇÃO RENAL E ELETRÓLITOS"
+  },
+  {
+    "coluna": "ureia_mg_dL",
+    "loinc": "3094-0",
+    "categoria": "4. FUNÇÃO RENAL E ELETRÓLITOS"
+  },
+  {
+    "coluna": "acido_urico_mg_dL",
+    "loinc": "3084-1",
+    "categoria": "4. FUNÇÃO RENAL E ELETRÓLITOS"
+  },
+  {
+    "coluna": "sodio_mEq_L",
+    "loinc": "2951-2",
+    "categoria": "4. FUNÇÃO RENAL E ELETRÓLITOS"
+  },
+  {
+    "coluna": "potassio_mEq_L",
+    "loinc": "2823-3",
+    "categoria": "4. FUNÇÃO RENAL E ELETRÓLITOS"
+  },
+  {
+    "coluna": "calcio_total_mg_dL",
+    "loinc": "17861-6",
+    "categoria": "4. FUNÇÃO RENAL E ELETRÓLITOS"
+  },
+  {
+    "coluna": "calcio_ionico_mmol_L",
+    "loinc": "1994-3",
+    "categoria": "4. FUNÇÃO RENAL E ELETRÓLITOS"
+  },
+  {
+    "coluna": "magnesio_mg_dL",
+    "loinc": "19123-9",
+    "categoria": "4. FUNÇÃO RENAL E ELETRÓLITOS"
+  },
+  {
+    "coluna": "fosforo_mg_dL",
+    "loinc": "2777-1",
+    "categoria": "4. FUNÇÃO RENAL E ELETRÓLITOS"
+  },
+  {
+    "coluna": "cloro_mEq_L",
+    "loinc": "2075-0",
+    "categoria": "4. FUNÇÃO RENAL E ELETRÓLITOS"
+  },
+  {
+    "coluna": "tgo_ast_U_L",
+    "loinc": "1920-8",
+    "categoria": "5. FUNÇÃO HEPÁTICA E BILIAR"
+  },
+  {
+    "coluna": "tgp_alt_U_L",
+    "loinc": "1742-6",
+    "categoria": "5. FUNÇÃO HEPÁTICA E BILIAR"
+  },
+  {
+    "coluna": "gama_gt_ggt_U_L",
+    "loinc": "2324-2",
+    "categoria": "5. FUNÇÃO HEPÁTICA E BILIAR"
+  },
+  {
+    "coluna": "fosfatase_alcalina_U_L",
+    "loinc": "6768-6",
+    "categoria": "5. FUNÇÃO HEPÁTICA E BILIAR"
+  },
+  {
+    "coluna": "bilirrubina_total_mg_dL",
+    "loinc": "1975-2",
+    "categoria": "5. FUNÇÃO HEPÁTICA E BILIAR"
+  },
+  {
+    "coluna": "bilirrubina_direta_mg_dL",
+    "loinc": "1968-7",
+    "categoria": "5. FUNÇÃO HEPÁTICA E BILIAR"
+  },
+  {
+    "coluna": "bilirrubina_indireta_mg_dL",
+    "loinc": "1971-1",
+    "categoria": "5. FUNÇÃO HEPÁTICA E BILIAR"
+  },
+  {
+    "coluna": "proteinas_totais_g_dL",
+    "loinc": "2885-2",
+    "categoria": "5. FUNÇÃO HEPÁTICA E BILIAR"
+  },
+  {
+    "coluna": "albumina_g_dL",
+    "loinc": "1751-7",
+    "categoria": "5. FUNÇÃO HEPÁTICA E BILIAR"
+  },
+  {
+    "coluna": "globulinas_g_dL",
+    "loinc": "2336-6",
+    "categoria": "5. FUNÇÃO HEPÁTICA E BILIAR"
+  },
+  {
+    "coluna": "ldh_desidrogenase_lactica_U_L",
+    "loinc": "2532-0",
+    "categoria": "5. FUNÇÃO HEPÁTICA E BILIAR"
+  },
+  {
+    "coluna": "tsh_uIU_mL",
+    "loinc": "3016-3",
+    "categoria": "6. TIREOIDE E HORMÔNIOS"
+  },
+  {
+    "coluna": "t4_livre_ng_dL",
+    "loinc": "3024-7",
+    "categoria": "6. TIREOIDE E HORMÔNIOS"
+  },
+  {
+    "coluna": "t4_total_ug_dL",
+    "loinc": "3026-2",
+    "categoria": "6. TIREOIDE E HORMÔNIOS"
+  },
+  {
+    "coluna": "t3_livre_pg_mL",
+    "loinc": "3051-0",
+    "categoria": "6. TIREOIDE E HORMÔNIOS"
+  },
+  {
+    "coluna": "t3_total_ng_dL",
+    "loinc": "3053-6",
+    "categoria": "6. TIREOIDE E HORMÔNIOS"
+  },
+  {
+    "coluna": "anti_tpo_IU_mL",
+    "loinc": "8099-4",
+    "categoria": "6. TIREOIDE E HORMÔNIOS"
+  },
+  {
+    "coluna": "anti_tireoglobulina_IU_mL",
+    "loinc": "8098-6",
+    "categoria": "6. TIREOIDE E HORMÔNIOS"
+  },
+  {
+    "coluna": "cortisol_basal_ug_dL",
+    "loinc": "2143-6",
+    "categoria": "6. TIREOIDE E HORMÔNIOS"
+  },
+  {
+    "coluna": "testosterona_total_ng_dL",
+    "loinc": "2986-8",
+    "categoria": "6. TIREOIDE E HORMÔNIOS"
+  },
+  {
+    "coluna": "testosterona_livre_pg_mL",
+    "loinc": "2991-8",
+    "categoria": "6. TIREOIDE E HORMÔNIOS"
+  },
+  {
+    "coluna": "estradiol_pg_mL",
+    "loinc": "2243-4",
+    "categoria": "6. TIREOIDE E HORMÔNIOS"
+  },
+  {
+    "coluna": "progesterona_ng_mL",
+    "loinc": "2839-9",
+    "categoria": "6. TIREOIDE E HORMÔNIOS"
+  },
+  {
+    "coluna": "fsh_mIU_mL",
+    "loinc": "15067-2",
+    "categoria": "6. TIREOIDE E HORMÔNIOS"
+  },
+  {
+    "coluna": "lh_mIU_mL",
+    "loinc": "10501-5",
+    "categoria": "6. TIREOIDE E HORMÔNIOS"
+  },
+  {
+    "coluna": "prolactina_ng_mL",
+    "loinc": "2842-3",
+    "categoria": "6. TIREOIDE E HORMÔNIOS"
+  },
+  {
+    "coluna": "shbg_nmol_L",
+    "loinc": "13967-5",
+    "categoria": "6. TIREOIDE E HORMÔNIOS"
+  },
+  {
+    "coluna": "dhea_s_ug_dL",
+    "loinc": "2191-5",
+    "categoria": "6. TIREOIDE E HORMÔNIOS"
+  },
+  {
+    "coluna": "pth_paratormonio_pg_mL",
+    "loinc": "2731-8",
+    "categoria": "6. TIREOIDE E HORMÔNIOS"
+  },
+  {
+    "coluna": "igf1_ng_mL",
+    "loinc": "2484-4",
+    "categoria": "6. TIREOIDE E HORMÔNIOS"
+  },
+  {
+    "coluna": "ferritina_ng_mL",
+    "loinc": "2276-4",
+    "categoria": "8. INFLAMAÇÃO, AUTOIMUNIDADE E COAGULAÇÃO"
+  },
+  {
+    "coluna": "ferro_serico_ug_dL",
+    "loinc": "2498-4",
+    "categoria": "8. INFLAMAÇÃO, AUTOIMUNIDADE E COAGULAÇÃO"
+  },
+  {
+    "coluna": "transferrina_mg_dL",
+    "loinc": "3034-6",
+    "categoria": "8. INFLAMAÇÃO, AUTOIMUNIDADE E COAGULAÇÃO"
+  },
+  {
+    "coluna": "tibc_ug_dL",
+    "loinc": "2500-7",
+    "categoria": "8. INFLAMAÇÃO, AUTOIMUNIDADE E COAGULAÇÃO"
+  },
+  {
+    "coluna": "saturacao_transferrina_pct",
+    "loinc": "2502-3",
+    "categoria": "8. INFLAMAÇÃO, AUTOIMUNIDADE E COAGULAÇÃO"
+  },
+  {
+    "coluna": "vitamina_d_25oh_ng_mL",
+    "loinc": "1989-3",
+    "categoria": "8. INFLAMAÇÃO, AUTOIMUNIDADE E COAGULAÇÃO"
+  },
+  {
+    "coluna": "vitamina_b12_pg_mL",
+    "loinc": "2132-9",
+    "categoria": "8. INFLAMAÇÃO, AUTOIMUNIDADE E COAGULAÇÃO"
+  },
+  {
+    "coluna": "acido_folico_folato_ng_mL",
+    "loinc": "2284-8",
+    "categoria": "8. INFLAMAÇÃO, AUTOIMUNIDADE E COAGULAÇÃO"
+  },
+  {
+    "coluna": "homocisteina_umol_L",
+    "loinc": "13965-9",
+    "categoria": "8. INFLAMAÇÃO, AUTOIMUNIDADE E COAGULAÇÃO"
+  },
+  {
+    "coluna": "zinco_ug_dL",
+    "loinc": "5763-8",
+    "categoria": "8. INFLAMAÇÃO, AUTOIMUNIDADE E COAGULAÇÃO"
+  },
+  {
+    "coluna": "pcr_ultrassensivel_mg_L",
+    "loinc": "30522-7",
+    "categoria": "9. MARCADORES TUMORAIS"
+  },
+  {
+    "coluna": "vhs_mm_h",
+    "loinc": "4537-7",
+    "categoria": "9. MARCADORES TUMORAIS"
+  },
+  {
+    "coluna": "fibrinogenio_mg_dL",
+    "loinc": "3255-7",
+    "categoria": "9. MARCADORES TUMORAIS"
+  },
+  {
+    "coluna": "d_dimero_ng_mL",
+    "loinc": "48065-7",
+    "categoria": "9. MARCADORES TUMORAIS"
+  },
+  {
+    "coluna": "tap_tempo_protrombina_seg",
+    "loinc": "5902-2",
+    "categoria": "9. MARCADORES TUMORAIS"
+  },
+  {
+    "coluna": "inr",
+    "loinc": "6301-6",
+    "categoria": "9. MARCADORES TUMORAIS"
+  },
+  {
+    "coluna": "ttpa_seg",
+    "loinc": "3173-2",
+    "categoria": "9. MARCADORES TUMORAIS"
+  },
+  {
+    "coluna": "fator_reumatoide_IU_mL",
+    "loinc": "11572-5",
+    "categoria": "9. MARCADORES TUMORAIS"
+  },
+  {
+    "coluna": "fan_fator_antinuclear",
+    "loinc": "8061-4",
+    "categoria": "9. MARCADORES TUMORAIS"
+  },
+  {
+    "coluna": "alfa_fetoproteina_afp_ng_mL",
+    "loinc": "1834-1",
+    "categoria": "10. MARCADORES CARDÍACOS E MUSCULARES"
+  },
+  {
+    "coluna": "cea_ng_mL",
+    "loinc": "2039-6",
+    "categoria": "10. MARCADORES CARDÍACOS E MUSCULARES"
+  },
+  {
+    "coluna": "psa_total_ng_mL",
+    "loinc": "2857-1",
+    "categoria": "10. MARCADORES CARDÍACOS E MUSCULARES"
+  },
+  {
+    "coluna": "psa_livre_ng_mL",
+    "loinc": "10886-0",
+    "categoria": "10. MARCADORES CARDÍACOS E MUSCULARES"
+  },
+  {
+    "coluna": "ca_125_U_mL",
+    "loinc": "10334-1",
+    "categoria": "10. MARCADORES CARDÍACOS E MUSCULARES"
+  },
+  {
+    "coluna": "ca_19_9_U_mL",
+    "loinc": "24108-3",
+    "categoria": "10. MARCADORES CARDÍACOS E MUSCULARES"
+  },
+  {
+    "coluna": "ca_15_3_U_mL",
+    "loinc": "6875-9",
+    "categoria": "10. MARCADORES CARDÍACOS E MUSCULARES"
+  },
+  {
+    "coluna": "beta_hcg_quantitativo_mIU_mL",
+    "loinc": "21198-7",
+    "categoria": "10. MARCADORES CARDÍACOS E MUSCULARES"
+  },
+  {
+    "coluna": "ck_total_creatinofosfoquinase_U_L",
+    "loinc": "2157-6",
+    "categoria": "10. MARCADORES CARDÍACOS E MUSCULARES"
+  },
+  {
+    "coluna": "ck_mb_ng_mL",
+    "loinc": "13969-1",
+    "categoria": "10. MARCADORES CARDÍACOS E MUSCULARES"
+  },
+  {
+    "coluna": "troponina_i_alta_sensibilidade_ng_L",
+    "loinc": "89579-7",
+    "categoria": "10. MARCADORES CARDÍACOS E MUSCULARES"
+  },
+  {
+    "coluna": "bnp_pg_mL",
+    "loinc": "30934-4",
+    "categoria": "10. MARCADORES CARDÍACOS E MUSCULARES"
+  },
+  {
+    "coluna": "nt_probnp_pg_mL",
+    "loinc": "33762-6",
+    "categoria": "10. MARCADORES CARDÍACOS E MUSCULARES"
+  },
+  {
+    "coluna": "hiv_1_2",
+    "loinc": "75622-1",
+    "categoria": "10. MARCADORES CARDÍACOS E MUSCULARES"
+  },
+  {
+    "coluna": "hbsag_hepatite_b",
+    "loinc": "5195-3",
+    "categoria": "10. MARCADORES CARDÍACOS E MUSCULARES"
+  },
+  {
+    "coluna": "anti_hbs_hepatite_b",
+    "loinc": "16935-9",
+    "categoria": "10. MARCADORES CARDÍACOS E MUSCULARES"
+  },
+  {
+    "coluna": "anti_hcv_hepatite_c",
+    "loinc": "16128-1",
+    "categoria": "10. MARCADORES CARDÍACOS E MUSCULARES"
+  },
+  {
+    "coluna": "vdrl_sifilis",
+    "loinc": "5292-88081.0150.7702 / CIP 6164788886",
+    "categoria": "10. MARCADORES CARDÍACOS E MUSCULARES"
+  }
+]

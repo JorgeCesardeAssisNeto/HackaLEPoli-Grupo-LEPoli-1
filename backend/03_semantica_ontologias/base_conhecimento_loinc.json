@@ -1,0 +1,212 @@
+{
+  "2276-4": {
+    "codigo_loinc": "2276-4",
+    "nome_exame": "Ferritina Sérica",
+    "categoria": "Metabolismo do Ferro e Hematologia",
+    "fontes_diretrizes": [
+      "Lab Tests Online BR / SBPC-ML (Sociedade Brasileira de Patologia Clínica e Medicina Laboratorial)",
+      "ABHH (Associação Brasileira de Hematologia, Hemoterapia e Terapia Celular)"
+    ],
+    "papel_fisiologico": "A ferritina é a principal proteína responsável por armazenar o ferro dentro das células do corpo, especialmente no fígado, baço e medula óssea. A quantidade de ferritina circulante no sangue reflete diretamente o tamanho das reservas de ferro disponíveis para produzir hemoglobina e manter o funcionamento celular, a energia muscular e a saúde capilar.",
+    "significado_clinico_variacoes": "Quando a ferritina está diminuindo ou próxima da borda inferior, indica que os estoques de ferro do organismo estão sendo consumidos — o que pode ocorrer antes mesmo de alterações na hemoglobina. Quando está elevada, pode refletir aumento dos estoques de ferro ou atuar como uma proteína de fase aguda em processos inflamatórios e metabólicos.",
+    "fatores_influencia": [
+      "Padrão alimentar e absorção intestinal de ferro (ferro heme vs. não-heme, ingestão de vitamina C)",
+      "Fluxo menstrual em mulheres em idade fértil",
+      "Processos inflamatórios ou infecciosos recentes (que podem elevar temporariamente a ferritina)",
+      "Uso recente de suplementação oral ou endovenosa de ferro"
+    ],
+    "perguntas_sugeridas_base": [
+      "Meus níveis atuais de ferritina estão em uma faixa ideal para minha idade e rotina, ou apenas dentro do limite mínimo laboratorial?",
+      "Considerando a curva dos meus últimos exames, há necessidade de ajustar minha alimentação ou avaliar suplementação de ferro?",
+      "Seria recomendável correlacionar minha ferritina com o ferro sérico, índice de saturação de transferrina e hemograma?"
+    ]
+  },
+  "718-7": {
+    "codigo_loinc": "718-7",
+    "nome_exame": "Hemoglobina",
+    "categoria": "Hemograma — Série Vermelha",
+    "fontes_diretrizes": [
+      "Lab Tests Online BR / SBPC-ML",
+      "Padrão CLSI EP28-A3c — Hematologia Laboratorial"
+    ],
+    "papel_fisiologico": "A hemoglobina é a proteína rica em ferro presente dentro dos glóbulos vermelhos (hemácias). Sua função essencial é transportar o oxigênio dos pulmões para todos os tecidos e órgãos do corpo e trazer de volta o gás carbônico para ser eliminado na respiração.",
+    "significado_clinico_variacoes": "Valores reduzidos podem diminuir a oferta de oxigênio aos tecidos, associando-se a cansaço e fadiga. Valores estáveis dentro da faixa central indicam bom equilíbrio entre a produção de glóbulos vermelhos pela medula óssea e os nutrientes necessários (como ferro, vitamina B12 e folato). Valores aumentados podem ocorrer por desidratação, tabagismo, altitude ou condições específicas da medula.",
+    "fatores_influencia": [
+      "Estado de hidratação no momento da coleta de sangue",
+      "Reservas de ferro (ferritina), vitamina B12 e ácido fólico",
+      "Prática de atividade física aeróbica e altitude geográfica"
+    ],
+    "perguntas_sugeridas_base": [
+      "Como o resultado da minha hemoglobina se relaciona com os demais índices do hemograma (VCM, HCM e RDW)?",
+      "Essa variação recente na minha hemoglobina tem impacto clínico ou faz parte da oscilação biológica esperada?",
+      "Preciso investigar estoques de ferro ou vitaminas do complexo B junto com este resultado?"
+    ]
+  },
+  "3016-3": {
+    "codigo_loinc": "3016-3",
+    "nome_exame": "TSH Ultra-Sensível (Hormônio Tireoestimulante)",
+    "categoria": "Função Tireoidiana e Endocrinologia",
+    "fontes_diretrizes": [
+      "SBEM (Sociedade Brasileira de Endocrinologia e Metabologia — Departamento de Tireoide)",
+      "Lab Tests Online BR / SBPC-ML"
+    ],
+    "papel_fisiologico": "O TSH é um hormônio produzido pela hipófise (uma glândula localizada na base do cérebro) que funciona como o 'maestro' da tireoide. Ele envia sinais para a glândula tireoide produzir os hormônios T4 e T3, que regulam a velocidade do metabolismo, a temperatura corporal, os batimentos cardíacos e o gasto de energia.",
+    "significado_clinico_variacoes": "O TSH funciona em equilíbrio inverso com os hormônios da tireoide: quando a tireoide trabalha mais devagar, o TSH tende a subir para estimulá-la; quando há excesso de hormônios tireoidianos no sangue, o TSH tende a diminuir. Pequenas oscilações dentro da faixa de referência são comuns ao longo do ano e conforme o horário da coleta.",
+    "fatores_influencia": [
+      "Horário da coleta (o TSH apresenta ritmo circadiano, sendo naturalmente mais alto no início da manhã)",
+      "Uso de biotina (vitamina B7) em suplementos para cabelo e unhas nos dias anteriores à coleta",
+      "Estresse físico agudo, privação de sono ou recuperação de infecções",
+      "Dose e horário de medicamentos tireoidianos, caso utilize"
+    ],
+    "perguntas_sugeridas_base": [
+      "A evolução do meu TSH em conjunto com o T4 Livre mostra que minha tireoide está funcionando em equilíbrio?",
+      "Algum suplemento (como biotina ou polivitamínicos) pode ter influenciado a leitura deste exame?",
+      "Qual é a periodicidade ideal para eu repetir o acompanhamento da função tireoidiana?"
+    ]
+  },
+  "2345-7": {
+    "codigo_loinc": "2345-7",
+    "nome_exame": "Glicose de Jejum (Glicemia)",
+    "categoria": "Metabolismo Glicêmico",
+    "fontes_diretrizes": [
+      "SBD (Diretrizes da Sociedade Brasileira de Diabetes 2024/2025)",
+      "Lab Tests Online BR / SBPC-ML"
+    ],
+    "papel_fisiologico": "A glicose no sangue é a principal fonte imediata de energia para as células do corpo, especialmente para o cérebro e os músculos. Após o período de jejum noturno, a medida da glicose mostra como o organismo, o fígado e o hormônio insulina estão mantendo o equilíbrio energético basal.",
+    "significado_clinico_variacoes": "Segundo a Sociedade Brasileira de Diabetes (SBD), valores de jejum entre 70 e 99 mg/dL são considerados normais. Resultados próximos ao limite superior (90–99 mg/dL) ou entre 100 e 125 mg/dL merecem acompanhamento conjunto com a Hemoglobina Glicada (HbA1c) e a Insulina Basal para avaliar a sensibilidade à insulina ao longo do tempo.",
+    "fatores_influencia": [
+      "Tempo exato de jejum (o ideal é entre 8 e 12 horas; jejum prolongado demais também pode alterar o valor)",
+      "Qualidade do sono e nível de estresse na véspera (o cortisol matinal pode elevar a glicose)",
+      "Prática de exercícios físicos nos dias anteriores e composição da última refeição noturna"
+    ],
+    "perguntas_sugeridas_base": [
+      "Como minha glicose de jejum atual se comporta quando analisada junto com minha Hemoglobina Glicada (HbA1c) e o índice HOMA-IR?",
+      "Essa tendência nos meus últimos exames sugere necessidade de ajustes na alimentação ou no horário das refeições?",
+      "Devo realizar algum exame complementar ou apenas manter o monitoramento periódico?"
+    ]
+  },
+  "4548-4": {
+    "codigo_loinc": "4548-4",
+    "nome_exame": "Hemoglobina Glicada (HbA1c)",
+    "categoria": "Metabolismo Glicêmico",
+    "fontes_diretrizes": [
+      "SBD (Diretrizes da Sociedade Brasileira de Diabetes)",
+      "SBPC-ML / Grupo Interdisciplinar de Padronização da HbA1c"
+    ],
+    "papel_fisiologico": "A Hemoglobina Glicada funciona como um 'filme' da glicose no sangue nos últimos 2 a 3 meses. À medida que a glicose circula na corrente sanguínea, uma pequena fração se liga naturalmente à hemoglobina das hemácias (que vivem cerca de 90 a 120 dias).",
+    "significado_clinico_variacoes": "Diferente da glicose de jejum (que retrata apenas o momento da coleta), a HbA1c mostra a média crônica do controle glicêmico. Pelas diretrizes da SBD, valores abaixo de 5,7% situam-se na faixa esperada, enquanto valores a partir de 5,7% sinalizam atenção preventiva ao metabolismo de carboidratos.",
+    "fatores_influencia": [
+      "Padrão alimentar e frequência de atividade física nos últimos 90 dias",
+      "Condições que alteram a vida média das hemácias (como variações de ferro ou vitaminas)"
+    ],
+    "perguntas_sugeridas_base": [
+      "O que a estabilidade ou oscilação da minha Hemoglobina Glicada nos últimos meses revela sobre meu metabolismo?",
+      "Quais hábitos práticos (como caminhadas pós-refeição ou fibras na dieta) podem ajudar a manter esse marcador na faixa ideal?",
+      "Qual é a meta de HbA1c mais adequada para o meu perfil clínico?"
+    ]
+  },
+  "1989-3": {
+    "codigo_loinc": "1989-3",
+    "nome_exame": "Vitamina D — 25-Hidroxivitamina D",
+    "categoria": "Metabolismo Ósseo e Vitaminas",
+    "fontes_diretrizes": [
+      "SBEM (Sociedade Brasileira de Endocrinologia e Metabologia)",
+      "SBPC-ML (Consenso Brasileiro de Vitamina D)"
+    ],
+    "papel_fisiologico": "A 25-Hidroxivitamina D é um pró-hormônio produzido na pele a partir da exposição solar e obtido em menor parte pela alimentação. Ela é fundamental para a absorção de cálcio e fósforo no intestino, protegendo a saúde dos ossos, a força muscular e participando da modulação do sistema imunológico.",
+    "significado_clinico_variacoes": "Pelo consenso da SBEM e SBPC-ML, níveis acima de 20 ng/mL são desejáveis para a população geral saudável, enquanto a faixa entre 30 e 60 ng/mL é recomendada para grupos específicos. Oscilações ao longo do ano são muito frequentes devido à variação sazonal de luz solar (outono/inverno vs. primavera/verão) e uso ou pausa de suplementos.",
+    "fatores_influencia": [
+      "Estação do ano e tempo de exposição solar diária sem filtro solar",
+      "Adesão, dose e intervalo de suplementação de colecalciferol (Vitamina D3)",
+      "Composição corporal (como é lipossolúvel, pode ficar mais distribuída no tecido adiposo)"
+    ],
+    "perguntas_sugeridas_base": [
+      "Para o meu perfil de saúde, a meta recomendada de Vitamina D é acima de 20 ng/mL ou entre 30 e 60 ng/mL?",
+      "Devo iniciar, manter ou ajustar a dose de suplementação de Vitamina D considerando esta curva histórica?",
+      "Vale a pena avaliar cálcio sérico ou paratormônio (PTH) junto com o acompanhamento da Vitamina D?"
+    ]
+  },
+  "13457-7": {
+    "codigo_loinc": "13457-7",
+    "nome_exame": "Colesterol LDL",
+    "categoria": "Perfil Lipídico e Saúde Cardiovascular",
+    "fontes_diretrizes": [
+      "SBC (Diretriz Brasileira de Dislipidemias e Prevenção da Aterosclerose — Sociedade Brasileira de Cardiologia)",
+      "Lab Tests Online BR / SBPC-ML"
+    ],
+    "papel_fisiologico": "As partículas de LDL (lipoproteína de baixa densidade) transportam o colesterol do fígado para as células do corpo, onde ele é usado na fabricação de membranas celulares e hormônios. Quando em excesso na circulação, parte desse colesterol pode se depositar gradualmente na parede das artérias.",
+    "significado_clinico_variacoes": "A meta de LDL na Diretriz da SBC é individualizada conforme o risco cardiovascular global de cada pessoa (podendo variar de < 130 mg/dL, < 100 mg/dL ou metas menores). Quedas consistentes ao longo do tempo demonstram excelente resposta a ajustes nutricionais, redução de gorduras saturadas e prática de exercícios.",
+    "fatores_influencia": [
+      "Consumo de gorduras saturadas, fibras solúveis (aveia, leguminosas) e fitoesteróis",
+      "Fatores genéticos e metabolismo hepático",
+      "Função da tireoide e prática regular de atividade física"
+    ],
+    "perguntas_sugeridas_base": [
+      "Qual é a meta individual de Colesterol LDL recomendada para a minha faixa de risco cardiovascular?",
+      "Como a relação entre meu LDL, HDL e Triglicerídeos evoluiu nos meus últimos laudos?",
+      "As medidas atuais de estilo de vida estão sendo suficientes para manter meu perfil lipídico protegido?"
+    ]
+  },
+  "2093-3": {
+    "codigo_loinc": "2093-3",
+    "nome_exame": "Colesterol Total",
+    "categoria": "Perfil Lipídico e Saúde Cardiovascular",
+    "fontes_diretrizes": [
+      "SBC (Sociedade Brasileira de Cardiologia)",
+      "Lab Tests Online BR / SBPC-ML"
+    ],
+    "papel_fisiologico": "O Colesterol Total representa a soma do colesterol transportado pelas diferentes frações no sangue (principalmente LDL, HDL e VLDL). O colesterol é um lipídio essencial para a estrutura das células, produção de vitamina D, ácidos biliares e hormônios esteroides.",
+    "significado_clinico_variacoes": "Valores abaixo de 190 mg/dL são considerados desejáveis para adultos. A interpretação clínica completa sempre analisa suas frações separadamente (quanto vem do HDL protetor e quanto vem do LDL e não-HDL).",
+    "fatores_influencia": [
+      "Alimentação nas últimas semanas e síntese natural pelo fígado",
+      "Prática de exercícios aeróbicos e controle de peso"
+    ],
+    "perguntas_sugeridas_base": [
+      "Analisando as frações (HDL e LDL) dentro do meu Colesterol Total, o equilíbrio está favorável?",
+      "A curva dos meus últimos exames mostra impacto positivo das mudanças de rotina?",
+      "Com qual frequência devo acompanhar meu perfil lipídico?"
+    ]
+  },
+  "2571-8": {
+    "codigo_loinc": "2571-8",
+    "nome_exame": "Triglicerídeos",
+    "categoria": "Perfil Lipídico e Metabolismo",
+    "fontes_diretrizes": [
+      "SBC (Sociedade Brasileira de Cardiologia)",
+      "SBEM / SBPC-ML"
+    ],
+    "papel_fisiologico": "Os triglicerídeos são a principal forma de reserva de energia do organismo, armazenados no tecido adiposo e transportados no sangue após as refeições ou produzidos pelo fígado a partir de carboidratos.",
+    "significado_clinico_variacoes": "Em jejum, valores inferiores a 150 mg/dL são desejáveis. Os triglicerídeos respondem de forma muito rápida e sensível a mudanças no consumo de açúcares simples, carboidratos refinados, bebidas alcoólicas e à prática de atividade física.",
+    "fatores_influencia": [
+      "Tempo de jejum antes da coleta (12 horas recomendadas quando solicitado jejum)",
+      "Consumo de carboidratos simples e álcool nos dias anteriores",
+      "Sensibilidade à insulina"
+    ],
+    "perguntas_sugeridas_base": [
+      "A evolução dos meus triglicerídeos em conjunto com o HDL mostra melhora da minha saúde metabólica?",
+      "Há necessidade de algum ajuste específico no consumo de carboidratos na minha rotina?",
+      "Na próxima coleta, devo fazer jejum de 12 horas ou coleta sem jejum?"
+    ]
+  },
+  "2160-0": {
+    "codigo_loinc": "2160-0",
+    "nome_exame": "Creatinina Sérica",
+    "categoria": "Função Renal",
+    "fontes_diretrizes": [
+      "SBN (Sociedade Brasileira de Nefrologia)",
+      "Lab Tests Online BR / SBPC-ML"
+    ],
+    "papel_fisiologico": "A creatinina é um subproduto natural do metabolismo e da renovação constante dos músculos. Como ela é produzida em ritmo constante e filtrada quase inteiramente pelos rins, sua concentração no sangue é um excelente indicador de como está a filtração renal.",
+    "significado_clinico_variacoes": "Valores estáveis dentro da faixa de referência (e uma Taxa de Filtração Glomerular Estimada — TFGe acima de 90 mL/min) indicam função de filtração renal preservada. Pequenas variações entre coletas costumam estar ligadas ao estado de hidratação ou massa muscular.",
+    "fatores_influencia": [
+      "Volume de água ingerido nas 24 horas anteriores ao exame",
+      "Quantidade de massa muscular e prática de treino de força intenso na véspera",
+      "Uso de suplementos de creatina ou dieta hiperproteica"
+    ],
+    "perguntas_sugeridas_base": [
+      "Minha creatinina e a Taxa de Filtração Glomerular Estimada (TFGe) indicam função renal plenamente saudável?",
+      "Meu nível de atividade física ou hidratação pode explicar pequenas variações entre um laudo e outro?",
+      "Devo associar exame de urina simples ou relação albumina/creatinina no próximo check-up anual?"
+    ]
+  }
+}
