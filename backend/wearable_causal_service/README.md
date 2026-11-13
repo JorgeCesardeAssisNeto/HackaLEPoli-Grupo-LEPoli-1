@@ -36,7 +36,9 @@ python main.py             # http://localhost:5050/docs
 ```
 
 ## Configuração na ROOK
-- **URL do webhook:** `https://<URL-PUBLICA>/wearables/webhook` (método POST, HTTPS público).
+- **URL do webhook:** `https://<URL-PUBLICA>/wearables/webhook` (POST; responde 200).
+- **Assinatura (opcional):** headers `x-rook-signature` / `rook-signature` / `x-rook-hash`. Só é validada se o header vier **e** `ROOK_WEBHOOK_SECRET` estiver preenchido (não vazio/placeholder) e `DEBUG=false`; caso contrário a entrega é aceita.
+- **Variáveis (Render):** `ROOK_CLIENT_UUID`, `ROOK_SECRET_KEY`, `ROOK_WEBHOOK_SECRET`, `ROOK_API_BASE_URL`, `DATABASE_URL` (`postgres://` é convertido para asyncpg).
   Em desenvolvimento: `ngrok http 5050` e use a URL `https://xxxx.ngrok-free.app/wearables/webhook`.
 - Cadastre-a no ROOK Portal → Webhooks (Sandbox e Production separados).
 - Credenciais (`client_uuid` e `secret_key`) vão no `.env`; REST usa HTTP Basic.

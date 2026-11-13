@@ -1,12 +1,20 @@
+import re
 from pathlib import Path
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 BASE_DIR = Path(__file__).resolve().parent
 DEFAULT_DB_PATH = BASE_DIR.parent / "04_persistencia_dados" / "open_health.db"
 
 
+def is_placeholder(value: str) -> bool:
+    """True para segredo vazio ou valor de exemplo (YOUR_..., changeme, xxx...)."""
+    v = (value or "").strip().lower()
+    return not v or v.startswith("your_") or v.startswith("seu-") or v in {"changeme", "change-me", "xxx", "placeholder"}
+
+
 class Settings(BaseSettings):
-    """Configurações do microserviço de wearables (porta 5050) integrado à ROOK API."""
+    """Configurações do microserviço (porta 5050). Variáveis desconhecidas são ignoradas."""
     model_config = SettingsConfigDict(
         env_file=str(BASE_DIR / ".env"),
         env_file_encoding="utf-8",
@@ -19,15 +27,14 @@ class Settings(BaseSettings):
     HOST: str = "0.0.0.0"
     DEBUG: bool = False
 
-    # Banco relacional principal (open_health.db)
+    # Banco relacional (SQLite local ou PostgreSQL no Render)
     DATABASE_PATH: str = str(DEFAULT_DB_PATH)
     DATABASE_URL: str = f"sqlite+aiosqlite:///{DEFAULT_DB_PATH}"
 
-    # ROOK API (https://docs.tryrook.io)
+    # ROOK API
     ROOK_API_BASE_URL: str = "https://api.rook-connect.com"
     ROOK_CLIENT_UUID: str = ""
-    ROOK_CLIENT_SECRET: str = ""
-    # Segredo usado para validar o header X-ROOK-HASH (se vazio, usa ROOK_CLIENT_SECRET)
+    ROOK_SECRET_KEY: str = ""
     ROOK_WEBHOOK_SECRET: str = ""
 
     # Serviços internos (HTTP REST)
@@ -40,6 +47,14 @@ class Settings(BaseSettings):
     POLLING_CRON_HOUR: int = 4
     POLLING_CRON_MINUTE: int = 0
     POLLING_LOOKBACK_DAYS: int = 2
+
+    @field_validator("DATABASE_URL")
+    @classmethod
+    def _async_driver(cls, url: str) -> str:
+        """Render fornece postgres:// ou postgresql://; o SQLAlchemy assíncrono exige +asyncpg."""
+        if url.startswith("sqlite:///"):
+            return url.replace("sqlite:///", "sqlite+aiosqlite:///", 1)
+        return re.sub(r"^(postgres|postgresql)://", "postgresql+asyncpg://", url)
 
 
 settings = Settings()

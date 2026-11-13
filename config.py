@@ -1,5 +1,5 @@
 from pydantic_settings import BaseSettings
-
+import os
 class Settings(BaseSettings):
     HOST: str = "0.0.0.0"
     PORT: int = 5050
@@ -7,8 +7,7 @@ class Settings(BaseSettings):
     SERVICE_NAME: str = "wearable-causal-service"
 
     # Banco de Dados
-    DATABASE_PATH: str = "sqlite+aiosqlite:///../open_health.db"
-
+    DATABASE_PATH: str = os.getenv("DATABASE_URL", "sqlite+aiosqlite:///../open_health.db")
     # Integrações API
     TERRA_WEBHOOK_SECRET: str = "YOUR_TERRA_WEBHOOK_SECRET"
     TERRA_API_BASE_URL: str = "https://api.tryterra.co/v2"

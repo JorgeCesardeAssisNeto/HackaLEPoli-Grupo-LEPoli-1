@@ -5,12 +5,14 @@ from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sess
 from config import settings
 from models.base import Base
 
-# Ensure parent directory of database exists
-db_path = Path(settings.DATABASE_PATH)
-db_path.parent.mkdir(parents=True, exist_ok=True)
+IS_SQLITE = settings.DATABASE_URL.startswith("sqlite")
+
+# Garante que o diretório do arquivo exista (apenas SQLite)
+if IS_SQLITE:
+    Path(settings.DATABASE_PATH).parent.mkdir(parents=True, exist_ok=True)
 
 # Build async engine
-connect_args = {"check_same_thread": False} if "sqlite" in settings.DATABASE_URL else {}
+connect_args = {"check_same_thread": False} if IS_SQLITE else {}
 
 engine = create_async_engine(
     settings.DATABASE_URL,
@@ -41,6 +43,7 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
 
 async def init_db() -> None:
     """Initialize database tables defined in the metadata."""
+    import models  # noqa: F401  (registra todas as tabelas no metadata)
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
 

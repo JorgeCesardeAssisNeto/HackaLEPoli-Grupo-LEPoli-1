@@ -25,7 +25,7 @@ class RookClient:
 
     def _headers(self) -> Dict[str, str]:
         token = base64.b64encode(
-            f"{settings.ROOK_CLIENT_UUID}:{settings.ROOK_CLIENT_SECRET}".encode("utf-8")
+            f"{settings.ROOK_CLIENT_UUID}:{settings.ROOK_SECRET_KEY}".encode("utf-8")
         ).decode("ascii")
         return {"Authorization": f"Basic {token}", "Content-Type": "application/json"}
 
