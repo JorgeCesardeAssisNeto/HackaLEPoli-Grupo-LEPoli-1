@@ -11,9 +11,10 @@ from sqlalchemy import select
 from clients.rook_client import rook_client, PILLAR_SUMMARY_PATHS
 from config import settings
 from database import AsyncSessionLocal
+from models.base import utc_now_naive
 from models.mappings import RookUserMapping
 from services.ingestion_service import ingest_and_evaluate
-from services.rook_normalizer import normalize_rook_payload
+from services.rook_normalizer import extract_records, has_metrics, normalize_rook_payload
 
 logger = logging.getLogger(__name__)
 
@@ -37,11 +38,14 @@ async def poll_daily_wearable_data(target_patient_id: Optional[str] = None) -> D
                     day = date.today() - timedelta(days=offset)
                     for pillar in PILLAR_SUMMARY_PATHS:
                         for payload in await rook_client.fetch_summary(user.rook_user_id, pillar, day):
-                            fields = normalize_rook_payload(user.patient_id, payload, default_date=day)
-                            _, alerts = await ingest_and_evaluate(session, user.patient_id, fields)
-                            processed += 1
-                            alerts_total += alerts
-                user.last_sync_at = datetime.utcnow()
+                            for record in extract_records(payload):
+                                fields = normalize_rook_payload(user.patient_id, record, default_date=day)
+                                if not has_metrics(fields):
+                                    continue
+                                _, alerts = await ingest_and_evaluate(session, user.patient_id, fields)
+                                processed += 1
+                                alerts_total += alerts
+                user.last_sync_at = utc_now_naive()
                 await session.commit()
             except Exception as exc:
                 logger.error("[POLLING] Erro no usuário %s: %s", user.rook_user_id, exc)
@@ -52,7 +56,7 @@ async def poll_daily_wearable_data(target_patient_id: Optional[str] = None) -> D
         "status": "success",
         "records_processed": processed,
         "alerts_generated": alerts_total,
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": utc_now_naive().isoformat(),
     }
 
 

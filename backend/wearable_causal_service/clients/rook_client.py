@@ -6,7 +6,7 @@ from datetime import date
 from typing import Any, Dict, List, Optional
 
 import httpx
-from config import settings
+from config import settings, is_placeholder
 
 logger = logging.getLogger(__name__)
 
@@ -23,6 +23,9 @@ class RookClient:
         self.base_url = (base_url or settings.ROOK_API_BASE_URL).rstrip("/")
         self.timeout = timeout or settings.HTTP_CLIENT_TIMEOUT_SEC
 
+    def _has_credentials(self) -> bool:
+        return not (is_placeholder(settings.ROOK_CLIENT_UUID) or is_placeholder(settings.ROOK_SECRET_KEY))
+
     def _headers(self) -> Dict[str, str]:
         token = base64.b64encode(
             f"{settings.ROOK_CLIENT_UUID}:{settings.ROOK_SECRET_KEY}".encode("utf-8")
@@ -33,6 +36,9 @@ class RookClient:
         self, user_id: str, pillar: str, day: date
     ) -> List[Dict[str, Any]]:
         """Busca o summary diário de um pilar. Retorna lista de payloads (vazia em caso de erro)."""
+        if not self._has_credentials():
+            logger.debug("ROOK_CLIENT_UUID/ROOK_SECRET_KEY não configurados; pulando fetch_summary.")
+            return []
         url = f"{self.base_url}{PILLAR_SUMMARY_PATHS[pillar]}"
         params = {"user_id": user_id, "date": day.isoformat()}
         try:
@@ -40,6 +46,8 @@ class RookClient:
                 resp = await client.get(url, headers=self._headers(), params=params)
             if resp.status_code == 200:
                 body = resp.json()
+                if body is None:
+                    return []
                 return body if isinstance(body, list) else [body]
             logger.warning("ROOK %s retornou %d para user %s: %s", pillar, resp.status_code, user_id, resp.text[:200])
         except httpx.RequestError as exc:
@@ -48,6 +56,9 @@ class RookClient:
 
     async def get_authorizer(self, user_id: str, data_source: str) -> Optional[Dict[str, Any]]:
         """Status/URL de autorização OAuth para fontes baseadas em API (Garmin, Oura, Fitbit...)."""
+        if not self._has_credentials():
+            logger.warning("ROOK_CLIENT_UUID/ROOK_SECRET_KEY não configurados para consultar authorizer.")
+            return None
         url = f"{self.base_url}/api/v1/user_id/{user_id}/data_source/{data_source}/authorizer"
         try:
             async with httpx.AsyncClient(timeout=self.timeout) as client:

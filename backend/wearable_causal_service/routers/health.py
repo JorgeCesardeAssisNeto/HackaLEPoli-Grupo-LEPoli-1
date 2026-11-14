@@ -20,7 +20,7 @@ async def health_check():
         "service": settings.SERVICE_NAME,
         "port": settings.PORT,
         "uptime_seconds": round(time.time() - START_TIME, 2),
-        "database": settings.DATABASE_PATH
+        "database": settings.database_display,
     }
 
 @router.get("/health/ready", summary="Readiness Probe")

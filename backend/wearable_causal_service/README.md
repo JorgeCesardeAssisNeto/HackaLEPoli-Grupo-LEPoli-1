@@ -18,7 +18,7 @@ tests/
 ## Endpoints
 | Método | Rota | Função |
 |---|---|---|
-| POST | `/wearables/webhook` | Webhook da ROOK (valida `X-ROOK-HASH`) |
+| POST | `/wearables/webhook` | Webhook da ROOK (valida `x-rook-signature` / `rook-signature` / `x-rook-hash` quando configurado) |
 | POST | `/wearables/link-user` | Vincula `user_id` ROOK ↔ paciente (padrão: `user_id = patient_id`) |
 | GET | `/wearables/authorizer/{user_id}/{data_source}` | URL de autorização OAuth (Garmin, Oura...) |
 | POST | `/wearables/metrics/manual` | Insere métricas e confundidores (tela, cafeína, álcool) |
@@ -30,7 +30,7 @@ tests/
 ## Executar
 ```powershell
 python -m pip install -r requirements.txt
-copy .env.example .env     # preencha ROOK_CLIENT_UUID / ROOK_CLIENT_SECRET
+copy .env.example .env     # preencha ROOK_CLIENT_UUID / ROOK_SECRET_KEY
 python -m pytest
 python main.py             # http://localhost:5050/docs
 ```

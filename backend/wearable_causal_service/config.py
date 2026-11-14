@@ -1,10 +1,24 @@
 import re
 from pathlib import Path
+from urllib.parse import urlsplit
 from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 BASE_DIR = Path(__file__).resolve().parent
-DEFAULT_DB_PATH = BASE_DIR.parent / "04_persistencia_dados" / "open_health.db"
+
+
+def _resolve_default_db_path() -> Path:
+    """Prefers the active FHIR database in 02_backend when present in the monorepo."""
+    monorepo_db = BASE_DIR.parent.parent / "02_backend" / "04_persistencia_dados" / "open_health.db"
+    if monorepo_db.exists():
+        return monorepo_db
+    legacy_dir = BASE_DIR.parent / "04_persistencia_dados"
+    if legacy_dir.exists():
+        return legacy_dir / "open_health.db"
+    return BASE_DIR / "open_health.db"
+
+
+DEFAULT_DB_PATH = _resolve_default_db_path()
 
 
 def is_placeholder(value: str) -> bool:
@@ -55,6 +69,16 @@ class Settings(BaseSettings):
         if url.startswith("sqlite:///"):
             return url.replace("sqlite:///", "sqlite+aiosqlite:///", 1)
         return re.sub(r"^(postgres|postgresql)://", "postgresql+asyncpg://", url)
+
+    @property
+    def database_display(self) -> str:
+        """Safe database identifier for logs and /health without leaking credentials."""
+        if self.DATABASE_URL.startswith("sqlite"):
+            return self.DATABASE_URL.split("///", 1)[-1] if "///" in self.DATABASE_URL else self.DATABASE_PATH
+        parsed = urlsplit(self.DATABASE_URL)
+        host = parsed.hostname or "unknown-host"
+        port = f":{parsed.port}" if parsed.port else ""
+        return f"{parsed.scheme}://{host}{port}{parsed.path}"
 
 
 settings = Settings()

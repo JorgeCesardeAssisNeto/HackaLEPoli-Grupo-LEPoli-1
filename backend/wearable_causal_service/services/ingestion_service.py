@@ -50,10 +50,11 @@ async def ingest_and_evaluate(
                 WearableDailyMetric.date <= row.date,
             )
         )
-        .order_by(WearableDailyMetric.date.asc())
+        .order_by(WearableDailyMetric.date.desc())
         .limit(30)
     )
-    history = [_row_to_dict(m) for m in (await session.execute(hist_stmt)).scalars().all()]
+    hist_rows = list(reversed((await session.execute(hist_stmt)).scalars().all()))
+    history = [_row_to_dict(m) for m in hist_rows]
 
     evaluations = await causal_engine.evaluate_all_targets(patient_id, _row_to_dict(row), history)
     alerts = await alert_service.persist_evaluations_and_alerts(session, patient_id, row.id, evaluations)

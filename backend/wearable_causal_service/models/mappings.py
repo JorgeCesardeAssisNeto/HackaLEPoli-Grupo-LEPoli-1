@@ -1,7 +1,6 @@
 import uuid
-from datetime import datetime
 from sqlalchemy import Column, String, Boolean, DateTime, Index
-from models.base import Base
+from models.base import Base, utc_now_naive
 
 
 class RookUserMapping(Base):
@@ -17,6 +16,6 @@ class RookUserMapping(Base):
     data_source = Column(String(50), nullable=True)  # Garmin, Oura, Apple Health, Health Connect...
     is_active = Column(Boolean, default=True, nullable=False)
     last_sync_at = Column(DateTime, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=utc_now_naive, nullable=False)
 
     __table_args__ = (Index("idx_rook_mapping_patient", "patient_id"),)

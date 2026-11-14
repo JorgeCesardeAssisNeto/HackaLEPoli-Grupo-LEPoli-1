@@ -399,10 +399,15 @@ class CausalInferenceEngine:
 
         # Causal Disambiguation
         if caffeine_mg > 90.0 and not prior_ferritin_borderline:
+            ferritin_note = (
+                f"{prior_ferritin_value:.1f} ng/mL"
+                if prior_ferritin_value is not None
+                else "sem alteração prévia registrada"
+            )
             verdict = (
                 f"Taquicardia diurna ({avg_hr_day:.1f} bpm, ICD={icd:.2f}) associada ao consumo agudo de cafeína "
                 f"({caffeine_mg:.0f} mg) em paciente sem histórico recente de deficiência de ferritina "
-                f"(último valor: {prior_ferritin_value or 'normal'}). Falso alarme mitigado com sucesso."
+                f"(último valor: {ferritin_note}). Falso alarme mitigado com sucesso."
             )
             return TargetEvaluationResult(
                 target_id=target_id,
@@ -418,10 +423,22 @@ class CausalInferenceEngine:
                 trigger_alert=False
             )
         else:
+            if prior_ferritin_borderline and prior_ferritin_value is not None:
+                anchor_text = f"Ancoragem FHIR: Ferritina prévia limítrofe/baixa ({prior_ferritin_value:.1f} ng/mL)."
+            elif prior_ferritin_borderline:
+                anchor_text = "Ancoragem FHIR: Ferritina prévia sinalizada como limítrofe/alterada."
+            elif prior_ferritin_value is not None:
+                anchor_text = (
+                    f"Ancoragem FHIR: último registro de Ferritina em {prior_ferritin_value:.1f} ng/mL "
+                    "(taquicardia diurna sem justificativa por cafeína requer reavaliação hematológica)."
+                )
+            else:
+                anchor_text = "Ancoragem FHIR: sem histórico recente de Ferritina disponível."
+
             verdict = (
                 f"Esforço cardiovascular compensatório diurno desproporcional ({avg_hr_day:.1f} bpm com apenas "
                 f"{steps or 0} passos; ICD={icd:.2f}) não justificado por cafeína. "
-                f"Ancoragem FHIR: Ferritina prévia limítrofe/baixa ({prior_ferritin_value or '< 30 ng/mL'}). "
+                f"{anchor_text} "
                 f"Recomenda-se antecipar Hemograma Completo (LOINC 718-7) e Ferritina (LOINC 2276-4)."
             )
             return TargetEvaluationResult(

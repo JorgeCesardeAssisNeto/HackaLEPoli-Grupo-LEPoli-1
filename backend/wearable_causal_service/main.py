@@ -25,7 +25,7 @@ async def lifespan(app: FastAPI):
       - Shutdown: Gracefully halts background tasks and disposes async DB connections
     """
     logger.info("Initializing Wearable Data Ingestion & Causal Inference Microservice...")
-    logger.info("Connecting to relational database: %s", settings.DATABASE_PATH)
+    logger.info("Connecting to relational database: %s", settings.database_display)
     await init_db()
 
     logger.info("Starting background APScheduler polling task for ROOK API...")

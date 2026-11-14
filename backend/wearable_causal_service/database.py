@@ -1,21 +1,41 @@
-import os
 from pathlib import Path
-from typing import AsyncGenerator
+from typing import Any, AsyncGenerator, Dict, Tuple
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from config import settings
 from models.base import Base
 
-IS_SQLITE = settings.DATABASE_URL.startswith("sqlite")
 
-# Garante que o diretório do arquivo exista (apenas SQLite)
-if IS_SQLITE:
-    Path(settings.DATABASE_PATH).parent.mkdir(parents=True, exist_ok=True)
+def _prepare_engine_config(database_url: str) -> Tuple[str, Dict[str, Any]]:
+    """Normalizes SQLite path creation and asyncpg SSL query params safely."""
+    if database_url.startswith("sqlite"):
+        sqlite_path = database_url.split("///", 1)[-1] if "///" in database_url else settings.DATABASE_PATH
+        if sqlite_path and sqlite_path != ":memory:":
+            Path(sqlite_path).parent.mkdir(parents=True, exist_ok=True)
+        return database_url, {"check_same_thread": False}
 
-# Build async engine
-connect_args = {"check_same_thread": False} if IS_SQLITE else {}
+    # asyncpg rejects ?sslmode=... in DSN kwargs; convert sslmode -> connect_args["ssl"]
+    parsed = urlsplit(database_url)
+    query_pairs = parse_qsl(parsed.query, keep_blank_values=True)
+    connect_args: Dict[str, Any] = {}
+    filtered_pairs = []
+    for k, v in query_pairs:
+        kl = k.lower()
+        if kl == "sslmode":
+            vl = v.lower()
+            connect_args["ssl"] = False if vl == "disable" else vl
+        elif kl == "channel_binding":
+            continue
+        else:
+            filtered_pairs.append((k, v))
+    clean_url = urlunsplit((parsed.scheme, parsed.netloc, parsed.path, urlencode(filtered_pairs), parsed.fragment))
+    return clean_url, connect_args
+
+
+ENGINE_URL, connect_args = _prepare_engine_config(settings.DATABASE_URL)
 
 engine = create_async_engine(
-    settings.DATABASE_URL,
+    ENGINE_URL,
     echo=settings.DEBUG,
     connect_args=connect_args,
     pool_pre_ping=True

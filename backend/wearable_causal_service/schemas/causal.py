@@ -1,6 +1,6 @@
 from datetime import datetime, date
 from typing import Optional, List, Dict, Any
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 class TargetEvaluationResult(BaseModel):
     target_id: str
@@ -18,6 +18,8 @@ class TargetEvaluationResult(BaseModel):
     recommended_loinc: Optional[str] = None
 
 class ClinicalAlertResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: str
     patient_id: str
     target_id: str
@@ -27,9 +29,6 @@ class ClinicalAlertResponse(BaseModel):
     recommended_action: str
     status: str
     created_at: datetime
-
-    class Config:
-        from_attributes = True
 
 class CausalEvaluationResponse(BaseModel):
     patient_id: str

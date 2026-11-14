@@ -1,11 +1,10 @@
 import uuid
-from datetime import datetime
 from sqlalchemy import (
     Column, String, Integer, Float, Boolean, DateTime, 
     ForeignKey, Text, JSON, Index
 )
 from sqlalchemy.orm import relationship
-from models.base import Base
+from models.base import Base, utc_now_naive
 
 class CausalEvaluation(Base):
     """
@@ -28,7 +27,7 @@ class CausalEvaluation(Base):
     
     persistence_days = Column(Integer, default=1, nullable=False)
     confidence_score = Column(Float, default=1.0, nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=utc_now_naive, nullable=False)
 
     metric = relationship("WearableDailyMetric", back_populates="evaluations")
     alerts = relationship("ClinicalAlert", back_populates="evaluation", cascade="all, delete-orphan")
@@ -56,7 +55,7 @@ class ClinicalAlert(Base):
     recommended_action = Column(Text, nullable=False)
     
     status = Column(String(20), default="PENDING", nullable=False)  # 'PENDING', 'NOTIFIED', 'DISMISSED'
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=utc_now_naive, nullable=False)
 
     evaluation = relationship("CausalEvaluation", back_populates="alerts")
 

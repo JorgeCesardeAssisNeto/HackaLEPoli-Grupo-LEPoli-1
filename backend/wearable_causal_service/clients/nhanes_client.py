@@ -30,17 +30,40 @@ class NHANESBaselineClient:
                 response = await client.get(url, params=params)
                 if response.status_code == 200:
                     data = response.json()
-                    # Map response to DTO safely
-                    baseline_info = data.get("calibration", {}) or data.get("baseline", {})
-                    metrics = NHANESBaselineMetrics(
-                        expected_resting_hr_bpm=baseline_info.get("fc_esperada_bpm") or baseline_info.get("expected_resting_hr_bpm"),
-                        delta_individual_bpm=baseline_info.get("delta_ind") or baseline_info.get("delta_individual_bpm"),
-                        calibrated_r2=data.get("r2", 0.864)
+                    # Suporta formato real da porta 5055 ("calibration_and_residuals") e mocks ("calibration"/"baseline")
+                    baseline_info = (
+                        data.get("calibration_and_residuals")
+                        or data.get("calibration")
+                        or data.get("baseline")
+                        or {}
                     )
+                    expected_hr = (
+                        baseline_info.get("expected_pulse_nhanes")
+                        if baseline_info.get("expected_pulse_nhanes") is not None
+                        else (baseline_info.get("fc_esperada_bpm") if baseline_info.get("fc_esperada_bpm") is not None
+                              else baseline_info.get("expected_resting_hr_bpm"))
+                    )
+                    delta_ind = (
+                        baseline_info.get("delta_individual_bpm")
+                        if baseline_info.get("delta_individual_bpm") is not None
+                        else baseline_info.get("delta_ind")
+                    )
+                    calibrated_r2 = (
+                        data.get("r2")
+                        if data.get("r2") is not None
+                        else baseline_info.get("r2")
+                    )
+                    metrics = NHANESBaselineMetrics(
+                        expected_resting_hr_bpm=expected_hr,
+                        delta_individual_bpm=delta_ind,
+                        calibrated_r2=calibrated_r2,
+                    )
+                    risk_flags = data.get("risk_flags") or data.get("models_inference") or {}
                     return NHANESBaselineResponse(
-                        user_id=user_id,
+                        user_id=data.get("wearable_window", {}).get("user_id") or user_id,
+                        patient_id=data.get("patient_id"),
                         baseline_metrics=metrics,
-                        risk_flags=data.get("risk_flags", {})
+                        risk_flags=risk_flags,
                     )
                 elif response.status_code == 404:
                     logger.warning("User %s not found in NHANES Baseline Service", user_id)

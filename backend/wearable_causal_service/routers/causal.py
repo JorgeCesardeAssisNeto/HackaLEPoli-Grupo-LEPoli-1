@@ -37,12 +37,15 @@ async def evaluate_patient_causal(
       3. Systemic Inflammation (HRV < 38 ms) vs Sleep Debt (< 6h) & Alcohol (4-day rule)
       4. Anemia Screening (Daytime HR > 92 bpm with low steps, ICD formula) cross-referenced with FHIR Lab
     """
-    # Fetch historical records
-    stmt = select(WearableDailyMetric).where(
-        WearableDailyMetric.patient_id == patient_id
-    ).order_by(WearableDailyMetric.date.asc())
+    # Fetch trailing window (most recent N days ordered chronologically)
+    stmt = (
+        select(WearableDailyMetric)
+        .where(WearableDailyMetric.patient_id == patient_id)
+        .order_by(desc(WearableDailyMetric.date))
+        .limit(days)
+    )
 
-    records = (await db.execute(stmt)).scalars().all()
+    records = list(reversed((await db.execute(stmt)).scalars().all()))
     if not records:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

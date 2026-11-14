@@ -1,11 +1,10 @@
 import uuid
-from datetime import datetime
 from sqlalchemy import (
     Column, String, Integer, Float, Boolean, Date, DateTime,
     ForeignKey, Text, JSON, UniqueConstraint, Index, CheckConstraint
 )
 from sqlalchemy.orm import relationship
-from models.base import Base
+from models.base import Base, utc_now_naive
 
 
 class ReportSession(Base):
@@ -28,7 +27,7 @@ class ReportSession(Base):
 
     baseline_session_id = Column(String(36), ForeignKey("report_sessions.id"), nullable=True)
     resumo = Column(Text, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=utc_now_naive, nullable=False)
 
     baselines = relationship("BaselineMetric", back_populates="session", cascade="all, delete-orphan")
     comparisons = relationship(
@@ -120,7 +119,7 @@ class ReportFinding(Base):
     nivel = Column(String(10), nullable=False)  # INFO | ATENCAO | ALERTA
     confianca = Column(Float, default=1.0, nullable=False)
     persistiu_desde_dia = Column(Integer, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=utc_now_naive, nullable=False)
 
     session = relationship("ReportSession", back_populates="findings")
 

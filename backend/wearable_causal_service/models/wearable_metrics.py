@@ -1,11 +1,10 @@
 import uuid
-from datetime import datetime, date
 from sqlalchemy import (
     Column, String, Integer, Float, Date, DateTime, 
     JSON, UniqueConstraint, Index
 )
 from sqlalchemy.orm import relationship
-from models.base import Base
+from models.base import Base, utc_now_naive
 
 class WearableDailyMetric(Base):
     """
@@ -53,7 +52,7 @@ class WearableDailyMetric(Base):
 
     # Raw Payload & Metadata
     raw_payload = Column(JSON, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=utc_now_naive, nullable=False)
 
     # Relationship to Causal Inference Evaluations
     evaluations = relationship(

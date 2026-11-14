@@ -15,6 +15,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from config import settings, is_placeholder
 from database import get_db
+from models.base import utc_now_naive
 from models.mappings import RookUserMapping
 from schemas.rook import RookWebhookResponse
 from services.ingestion_service import ingest_and_evaluate
@@ -68,7 +69,7 @@ async def _process(db: AsyncSession, payload: Dict[str, Any]) -> RookWebhookResp
     ).scalars().first()
     patient_id = mapping.patient_id if mapping else rook_user_id
     if mapping:
-        mapping.last_sync_at = datetime.utcnow()
+        mapping.last_sync_at = utc_now_naive()
 
     ingested = alerts_total = 0
     # Eventos de alta frequência (data_structure presente e fora dos summaries) são só reconhecidos

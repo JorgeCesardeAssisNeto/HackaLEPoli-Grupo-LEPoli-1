@@ -1,17 +1,16 @@
 from datetime import date, datetime
 from typing import Optional, List, Dict, Any
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 class MappingResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: str
     patient_id: str
     rook_user_id: str
     data_source: Optional[str] = None
     is_active: bool
     created_at: datetime
-
-    class Config:
-        from_attributes = True
 
 class DailyMetricCreate(BaseModel):
     patient_id: str
@@ -40,6 +39,8 @@ class DailyMetricCreate(BaseModel):
     raw_payload: Optional[Dict[str, Any]] = None
 
 class DailyMetricResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: str
     patient_id: str
     date: date
@@ -55,7 +56,4 @@ class DailyMetricResponse(BaseModel):
     alcohol_units: Optional[float] = None
     icd_index: Optional[float] = None
     created_at: datetime
-
-    class Config:
-        from_attributes = True
 
