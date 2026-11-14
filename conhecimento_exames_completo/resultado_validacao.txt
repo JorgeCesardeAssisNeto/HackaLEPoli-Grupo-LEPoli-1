@@ -1,0 +1,37 @@
+OK catalogo_exames.csv: 113 linhas, chave exame_id única e não vazia
+OK catalogo_exames.csv: cabeçalho único, UTF-8 sem BOM
+OK interpretacoes_exames.csv: 999 linhas, chave interp_id única e não vazia
+OK interpretacoes_exames.csv: cabeçalho único, UTF-8 sem BOM
+OK criterios_classificacao.csv: 376 linhas, chave criterio_id única e não vazia
+OK criterios_classificacao.csv: cabeçalho único, UTF-8 sem BOM
+OK pares_etarios.csv: 72 linhas, chave par_id única e não vazia
+OK pares_etarios.csv: cabeçalho único, UTF-8 sem BOM
+OK mapeamento_niveis.csv: 12 linhas, chave mapeamento_id única e não vazia
+OK mapeamento_niveis.csv: cabeçalho único, UTF-8 sem BOM
+OK referencias.csv: 12 linhas, chave ref_id única e não vazia
+OK referencias.csv: cabeçalho único, UTF-8 sem BOM
+OK pendencias.csv: 96 linhas, chave pendencia_id única e não vazia
+OK pendencias.csv: cabeçalho único, UTF-8 sem BOM
+OK catálogo cobre os 113 exames da base 565
+OK LOINC e nomes preservados da base 565
+OK interpretacoes_exames.csv: todo exame_id existe no catálogo
+OK criterios_classificacao.csv: todo exame_id existe no catálogo
+OK pares_etarios.csv: todo exame_id existe no catálogo
+OK interpretacoes_exames.csv: ref_id_texto existe em referencias.csv
+OK criterios_classificacao.csv: ref_id existe em referencias.csv
+OK pares_etarios.csv: ref_id existe em referencias.csv
+OK catalogo_exames.csv: ref_id_resumo existe em referencias.csv
+OK interpretacoes.par_ids existem em pares_etarios.csv
+OK todos os exames têm linha para os 5 níveis (faltando: 0)
+OK sem duplicidade exame+nível+direção
+INFO status_informacao: {'conteudo_disponivel': 112, 'pendente_validacao': 651, 'nao_aplicavel': 236}
+INFO linhas por nível: {'1': 113, '2': 220, '3': 220, '4': 220, '5': 220, 'fora_escala': 6}
+OK nenhuma expressão proibida nos textos
+OK percentuais da base antiga (86%, 8%, 4%, 1,5%, 0,5%) não copiados
+OK linhas com conteúdo têm descrição
+OK linhas aplicáveis com texto têm mitigação
+OK causas de valores baixos e altos são textos distintos
+OK pares sem amostra suficiente ficam vazios (sem zero)
+OK n_amostra numérico
+OK limites numéricos com ponto decimal
+OK regras do projeto sem lacuna nem sobreposição em 32 exames (problemas: 0)
