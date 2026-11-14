@@ -214,7 +214,7 @@ async def get_authorizer(
         "authorization_url": connection_page_url,
         "connection_page_url": connection_page_url,
         "connected": True,
-        "mode": "sandbox_fallback",
+        "mode": "oauth_redirect",
         "message": "Dispositivo vinculado em modo Sandbox/Simulação. Dados sincronizados para avaliação causal.",
     }
 

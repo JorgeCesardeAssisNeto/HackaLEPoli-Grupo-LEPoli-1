@@ -33,23 +33,20 @@ def _normalize_slug(text: str) -> str:
 
 
 def _parse_br_float(raw_str: str) -> Optional[float]:
-    """Converte números em formato brasileiro ('1.234,56', '14,5', '4.500') ou internacional para float."""
+    """
+    Converte números em formato brasileiro ('1.234,56', '14,5', '4.500') ou internacional ('18.5') para float.
+    Remove apenas pontos que atuam como separadores de milhar (?<=\\d)\\.(?=\\d{3}(?:\\D|$)),
+    preservando pontos decimais ('18.5' -> 18.5) e convertendo vírgulas decimais ('18,5' -> 18.5).
+    """
     if raw_str is None:
         return None
     s = re.sub(r"^[<>≤≥=\s]+", "", str(raw_str).strip())
     if not s:
         return None
-    # Formato '1.234,56' -> milhar com ponto e decimal com vírgula
-    if "," in s and "." in s:
-        if s.rfind(",") > s.rfind("."):
-            s = s.replace(".", "").replace(",", ".")
-        else:
-            s = s.replace(",", "")
-    elif "," in s:
-        s = s.replace(",", ".")
-    elif re.match(r"^\d{1,3}(?:\.\d{3})+$", s):
-        # Ex.: '4.500' ou '235.000' (separador de milhar sem decimais)
-        s = s.replace(".", "")
+    # Remove apenas pontos de milhar seguidos por exatamente 3 dígitos
+    s = re.sub(r"(?<=\d)\.(?=\d{3}(?:\D|$))", "", s)
+    # Converte vírgula decimal para ponto
+    s = s.replace(",", ".")
     try:
         return float(s)
     except ValueError:
@@ -1006,12 +1003,11 @@ def _build_biomarker_item(
 ) -> Dict[str, Any]:
     ref_min = float(custom_ref_min if custom_ref_min is not None else entry.get("reference_min", 0.0))
     ref_max = float(custom_ref_max if custom_ref_max is not None else entry.get("reference_max", 100.0))
-    unit = custom_unit or entry.get("unit", "unid")
-    ref_range = (
-        f"{ref_min} a {ref_max} {unit}"
-        if (custom_ref_min is not None or custom_ref_max is not None)
-        else entry.get("reference_range", f"{ref_min} - {ref_max} {unit}")
-    )
+    unit = (custom_unit or "").strip() or entry.get("unit", "unid")
+    if custom_ref_min is not None or custom_ref_max is not None or custom_unit:
+        ref_range = f"{ref_min} a {ref_max} {unit}" if ref_min > 0 else f"< {ref_max} {unit}"
+    else:
+        ref_range = entry.get("reference_range", f"{ref_min} - {ref_max} {unit}")
     status_en, status_pt = _classify_status(value, ref_min, ref_max)
     return {
         "name": entry["name"],
@@ -1034,18 +1030,28 @@ def _build_biomarker_item(
     }
 
 
-def _extract_number_before_ref(segment: str) -> Optional[float]:
-    """Extrai o primeiro valor numérico de um segmento de linha antes de qualquer 'Ref:' / 'Referência:'."""
+NUMBER_TOKEN_REGEX = r"(?:\d{1,3}(?:\.\d{3})+(?:,\d+)?|\d+(?:[.,]\d+)?)"
+UNIT_TOKEN_REGEX = (
+    r"(?:milh[oõ]es/mm3|mil/mm3|/mm3|10\^3/[uµ]L|10\^6/[uµ]L|mL/min/1[.,]73\s*m2|mL/min|"
+    r"mg/dL|ng/mL|ng/dL|g/dL|pg/mL|ug/dL|µg/dL|mcg/dL|mg/L|g/L|"
+    r"mUI/L|uUI/mL|µUI/mL|mUI/mL|UI/mL|UI/L|U/L|"
+    r"mEq/L|mmol/L|umol/L|µmol/L|nmol/L|pmol/L|"
+    r"mm/h|fL|pg|%)"
+)
+
+
+def _extract_number_and_unit_before_ref(segment: str) -> Tuple[Optional[float], Optional[str]]:
+    """Extrai (valor_numerico, unidade_original_opcional) antes de qualquer 'Ref:' / 'Referência:'."""
     explicit_res = re.search(
-        r"(?:resultado|valor\s+obtido|dosagem\s+obtida|valor\s+encontrado)\s*[:=]?\s*[<>≤≥]?\s*"
-        r"(\d{1,3}(?:\.\d{3})*(?:,\d+)?|\d+(?:[.,]\d+)?)",
+        rf"(?:resultado|valor\s+obtido|dosagem\s+obtida|valor\s+encontrado)\s*[:=]?\s*[<>≤≥]?\s*"
+        rf"(?P<val>{NUMBER_TOKEN_REGEX})(?:\s*(?P<unit>{UNIT_TOKEN_REGEX}))?",
         segment,
         flags=re.IGNORECASE,
     )
     if explicit_res:
-        val = _parse_br_float(explicit_res.group(1))
+        val = _parse_br_float(explicit_res.group("val"))
         if val is not None:
-            return val
+            return val, explicit_res.group("unit")
 
     before_ref = re.split(
         r"(?:valores\s+de\s+refer[eê]ncia|valor\s+de\s+refer[eê]ncia|refer[eê]ncia|\bref\.?\s*[:=]|\bvr\s*[:=]|desej[aá]vel\s*[:=]|\(\s*ref)",
@@ -1058,19 +1064,21 @@ def _extract_number_before_ref(segment: str) -> Optional[float]:
     cleaned = re.sub(r"\b\d{2}:\d{2}(?::\d{2})?\b", " ", cleaned)
     cleaned = re.sub(r"\b\d{3,5}-\d\b", " ", cleaned)
     cleaned = re.sub(r"\(\s*25[\s-]*oh\s*\)", " ", cleaned, flags=re.IGNORECASE)
-    cleaned = re.sub(r"\b(?:10\^\d+|10e\d+|mm3|m2|1,73\s*m2)\b", " ", cleaned, flags=re.IGNORECASE)
 
-    num_match = re.search(r"(?<![A-Za-z0-9_-])[<>≤≥]?\s*(\d{1,3}(?:\.\d{3})*(?:,\d+)?|\d+(?:[.,]\d+)?)", cleaned)
+    num_match = re.search(
+        rf"(?<![A-Za-z0-9_-])[<>≤≥]?\s*(?P<val>{NUMBER_TOKEN_REGEX})(?:\s*(?P<unit>{UNIT_TOKEN_REGEX}))?",
+        cleaned,
+        flags=re.IGNORECASE,
+    )
     if num_match:
-        return _parse_br_float(num_match.group(1))
-    return None
+        return _parse_br_float(num_match.group("val")), num_match.group("unit")
+    return None, None
 
 
 def _extract_ref_from_segment(segment: str) -> Tuple[Optional[float], Optional[float]]:
     ref_match = re.search(
-        r"(?:refer[eê]ncia|valores\s+de\s+refer[eê]ncia|\bref\.?|\bvr\b|normal|desej[aá]vel)\s*[:=]?\s*"
-        r"(\d{1,3}(?:\.\d{3})*(?:,\d+)?|\d+(?:[.,]\d+)?)\s*(?:a|-|at[eé])\s*"
-        r"(\d{1,3}(?:\.\d{3})*(?:,\d+)?|\d+(?:[.,]\d+)?)",
+        rf"(?:refer[eê]ncia|valores\s+de\s+refer[eê]ncia|\bref\.?|\bvr\b|normal|desej[aá]vel)\s*[:=]?\s*"
+        rf"({NUMBER_TOKEN_REGEX})\s*(?:a|-|at[eé])\s*({NUMBER_TOKEN_REGEX})",
         segment,
         flags=re.IGNORECASE,
     )
@@ -1079,27 +1087,29 @@ def _extract_ref_from_segment(segment: str) -> Tuple[Optional[float], Optional[f
     return None, None
 
 
-def _extract_value_from_window(window: str) -> Tuple[Optional[float], Optional[float], Optional[float]]:
+def _extract_value_from_window(
+    window: str,
+) -> Tuple[Optional[float], Optional[str], Optional[float], Optional[float]]:
     """
-    Extrai (valor_resultado, ref_min_opcional, ref_max_opcional) da janela de texto após o nome do exame.
+    Extrai (valor_resultado, unidade_pdf, ref_min_opcional, ref_max_opcional) da janela após o nome do exame.
     Prioriza a mesma linha (layout tabular/inline) e, se não houver número na mesma linha,
     inspeciona as linhas subsequentes do mesmo bloco (layout multi-linha) sem invadir o próximo exame.
     """
     if not window:
-        return None, None, None
+        return None, None, None, None
 
     raw_lines = window.splitlines()[:4]
     if not raw_lines:
-        return None, None, None
+        return None, None, None, None
 
     # 1. Tenta extrair na mesma linha em que o nome do exame apareceu
     first_line = raw_lines[0]
-    val_same_line = _extract_number_before_ref(first_line)
+    val_same_line, unit_same_line = _extract_number_and_unit_before_ref(first_line)
     if val_same_line is not None:
         rmin, rmax = _extract_ref_from_segment(first_line)
         if rmin is None and len(raw_lines) > 1:
             rmin, rmax = _extract_ref_from_segment(raw_lines[1])
-        return val_same_line, rmin, rmax
+        return val_same_line, unit_same_line, rmin, rmax
 
     # 2. Layout multi-linha: percorre as linhas seguintes parando se encontrar outro nome de exame
     block_lines = [first_line]
@@ -1107,16 +1117,19 @@ def _extract_value_from_window(window: str) -> Tuple[Optional[float], Optional[f
         stripped = next_line.strip()
         if not stripped:
             continue
-        # Se a linha seguinte começa com outro exame conhecido (e não com 'Resultado'/'Valor'/'Material'/'Método'/'Ref'), para o bloco
-        if not re.match(r"^(?:resultado|valor|dosagem|material|m[eé]todo|refer[eê]ncia|ref\b|vr\b|desej[aá]vel|normal|\d|[<>≤≥])", stripped, flags=re.IGNORECASE):
+        if not re.match(
+            r"^(?:resultado|valor|dosagem|material|m[eé]todo|refer[eê]ncia|ref\b|vr\b|desej[aá]vel|normal|\d|[<>≤≥])",
+            stripped,
+            flags=re.IGNORECASE,
+        ):
             if any(re.search(pat, stripped, flags=re.IGNORECASE) for _, pat in EXTRACTION_RULES):
                 break
         block_lines.append(next_line)
 
     block_text = "\n".join(block_lines[1:])
-    val_multi = _extract_number_before_ref(block_text)
+    val_multi, unit_multi = _extract_number_and_unit_before_ref(block_text)
     rmin, rmax = _extract_ref_from_segment("\n".join(block_lines))
-    return val_multi, rmin, rmax
+    return val_multi, unit_multi, rmin, rmax
 
 
 def _extract_biomarkers_from_text(raw_text: str) -> List[Dict[str, Any]]:
@@ -1133,18 +1146,18 @@ def _extract_biomarkers_from_text(raw_text: str) -> List[Dict[str, Any]]:
         if key in seen_keys:
             continue
         for match in re.finditer(pattern, text, flags=re.IGNORECASE):
-            # Evita casar o nome do analito quando ele aparece apenas dentro de 'Valores de Referência'
             prefix = text[max(0, match.start() - 25) : match.start()].lower()
             if "refer" in prefix:
                 continue
 
             window = text[match.end() : match.end() + 220]
-            val, ref_min, ref_max = _extract_value_from_window(window)
+            val, pdf_unit, ref_min, ref_max = _extract_value_from_window(window)
             if val is not None:
                 entry = CLINICAL_KNOWLEDGE_CATALOG[key]
                 item = _build_biomarker_item(
                     entry,
                     val,
+                    custom_unit=pdf_unit,
                     custom_ref_min=ref_min,
                     custom_ref_max=ref_max,
                 )
@@ -1154,11 +1167,11 @@ def _extract_biomarkers_from_text(raw_text: str) -> List[Dict[str, Any]]:
 
     # Camada 2: Parser genérico por linha/bloco para capturar exames adicionais com unidade explícita no PDF
     generic_pattern = re.compile(
-        r"(?:^|\n)\s*(?P<name>[A-Za-zÀ-ÿ][A-Za-zÀ-ÿ0-9\s\-\(\)/]{2,42}?)"
-        r"(?:\s*[:.\-]+\s*|\s{2,}|\s+Resultado\s*[:=]?\s*)"
-        r"(?P<val>\d{1,3}(?:\.\d{3})*(?:,\d+)?|\d+(?:[.,]\d+)?)\s*"
-        r"(?P<unit>mg/dL|ng/mL|g/dL|pg/mL|ug/dL|µg/dL|mUI/L|uUI/mL|µUI/mL|mUI/mL|UI/mL|U/L|UI/L|mEq/L|mmol/L|umol/L|µmol/L|fL|pg|mm/h|mL/min|mil/mm3|/mm3|%)"
-        r"(?:[^\n]{0,60}?(?:Ref(?:er[eê]ncia)?|VR)?[\s:(\[]*(?P<rmin>\d+(?:[.,]\d+)?)\s*(?:a|-)\s*(?P<rmax>\d+(?:[.,]\d+)?))?",
+        rf"(?:^|\n)\s*(?P<name>[A-Za-zÀ-ÿ][A-Za-zÀ-ÿ0-9\s\-\(\)/]{{2,42}}?)"
+        rf"(?:\s*[:.\-]+\s*|\s{{2,}}|\s+Resultado\s*[:=]?\s*)"
+        rf"(?P<val>{NUMBER_TOKEN_REGEX})\s*"
+        rf"(?P<unit>{UNIT_TOKEN_REGEX})"
+        rf"(?:[^\n]{{0,60}}?(?:Ref(?:er[eê]ncia)?|VR)?[\s:(\[]*(?P<rmin>{NUMBER_TOKEN_REGEX})\s*(?:a|-)\s*(?P<rmax>{NUMBER_TOKEN_REGEX}))?",
         flags=re.IGNORECASE,
     )
     ignored_generic_names = {
@@ -1357,6 +1370,74 @@ async def obter_conhecimento_analito(analito: str):
     }
 
 
+def _extract_lab_name_from_text(raw_text: str, default_lab: str = "Open Health Lab Integration") -> str:
+    """Extrai o nome do laboratório do cabeçalho do PDF (ex: Laboratório, Lab., Fleury, Dasa, Sabin, Einstein...)."""
+    if not raw_text or not raw_text.strip():
+        return default_lab
+
+    # 1. Rótulo explícito 'Laboratório: ...'
+    explicit_lab = re.search(
+        r"(?:^|\n)\s*Laborat[oó]rio\s*[:\-]\s*([^\n\r|]+)",
+        raw_text,
+        flags=re.IGNORECASE,
+    )
+    if explicit_lab:
+        return explicit_lab.group(1).strip()
+
+    # 2. Linha contendo 'Laboratório', 'Lab.' ou redes laboratoriais brasileiras conhecidas
+    known_lab = re.search(
+        r"(?:^|\n)\s*([^\n\r|]*?\b(?:Laborat[oó]rio|Lab\.|Fleury|Dasa|Lavoisier|Sabin|Einstein|Delboni|Hermes\s+Pardini|S[eé]rgio\s+Franco|A\+\s*Medicina|CientificaLab|Diagn[oó]sticos\s+da\s+Am[eé]rica)\b[^\n\r|]*)",
+        raw_text,
+        flags=re.IGNORECASE,
+    )
+    if known_lab:
+        candidate = known_lab.group(1).strip(" -:|")
+        if candidate:
+            return candidate
+
+    # 3. Primeira linha não-vazia do cabeçalho antes de Paciente / Data / Exames
+    for line in raw_text.splitlines()[:5]:
+        cleaned = line.strip(" -:|")
+        if not cleaned or len(cleaned) < 3:
+            continue
+        if re.match(
+            r"^(?:paciente|nome|data|coleta|emiss[aã]o|liberado|cpf|cns|idade|sexo|m[eé]dico|protocolo|resultado|valores|refer[eê]ncia|laudo\s+laboratorial)\b",
+            cleaned,
+            flags=re.IGNORECASE,
+        ):
+            continue
+        if any(re.search(pat, cleaned, flags=re.IGNORECASE) for _, pat in EXTRACTION_RULES):
+            continue
+        return cleaned
+
+    return default_lab
+
+
+def _extract_collection_date_from_text(raw_text: str, default_date: str) -> str:
+    """Extrai a data de coleta/exame do texto do PDF com suporte amplo a formatos brasileiros e ISO."""
+    if not raw_text or not raw_text.strip():
+        return default_date
+
+    # 1. Rótulos explícitos (Data da coleta, Coleta, Data, Emissão, Liberado em, Realizado em)
+    labeled_date = re.search(
+        r"(?:Data\s+d[aeo]\s+Coleta|Data\s+d[eo]\s+Exame|Coleta|Emiss[aã]o|Liberado\s+em|Realizado\s+em|Data)\s*[:\-]?\s*"
+        r"(\d{2}/\d{2}/\d{2,4}|\d{2}-\d{2}-\d{4}|\d{4}-\d{2}-\d{2})",
+        raw_text,
+        flags=re.IGNORECASE,
+    )
+    if labeled_date:
+        return labeled_date.group(1).strip()
+
+    # 2. Data avulsa no documento (excluindo datas de nascimento quando precedidas por 'Nascimento')
+    for dmatch in re.finditer(r"\b(\d{2}/\d{2}/\d{4}|\d{2}-\d{2}-\d{4}|\d{4}-\d{2}-\d{2})\b", raw_text):
+        prefix = raw_text[max(0, dmatch.start() - 25) : dmatch.start()].lower()
+        if "nasc" in prefix or "dn" in prefix:
+            continue
+        return dmatch.group(1).strip()
+
+    return default_date
+
+
 @router.post(
     "/api/extrair",
     summary="Extrair biomarcadores estruturados de laudo laboratorial (PDF, CSV, texto ou JSON)",
@@ -1368,6 +1449,9 @@ async def extrair_exames_endpoint(request: Request):
     raw_file_bytes = b""
     patient_name = "Paciente Open Health"
     exam_date = date.today().isoformat()
+    lab_name = "Open Health Lab Integration"
+    explicit_date_provided = False
+    explicit_lab_provided = False
     has_real_input = False
 
     if "application/json" in content_type:
@@ -1377,7 +1461,17 @@ async def extrair_exames_endpoint(request: Request):
             body = {}
         if isinstance(body, dict):
             patient_name = str(body.get("patient_name") or body.get("paciente_nome") or patient_name)
-            exam_date = str(body.get("date") or body.get("data_exame") or exam_date)
+            if body.get("date") or body.get("data_exame") or body.get("collection_date") or body.get("data_coleta"):
+                exam_date = str(
+                    body.get("collection_date")
+                    or body.get("data_coleta")
+                    or body.get("date")
+                    or body.get("data_exame")
+                )
+                explicit_date_provided = True
+            if body.get("laboratory") or body.get("laboratorio"):
+                lab_name = str(body.get("laboratory") or body.get("laboratorio"))
+                explicit_lab_provided = True
 
             # 1. Suporte a PDF/arquivo em Base64 no JSON (pdf_base64 / file_base64 / base64)
             b64_str = body.get("pdf_base64") or body.get("file_base64") or body.get("base64")
@@ -1414,7 +1508,8 @@ async def extrair_exames_endpoint(request: Request):
             reserved = {
                 "text", "content", "raw_text", "texto", "pdf_base64", "file_base64", "base64",
                 "biomarkers", "exames", "lab_results", "results", "patient_id", "patient_name",
-                "paciente_nome", "date", "data_exame",
+                "paciente_nome", "date", "data_exame", "collection_date", "data_coleta",
+                "laboratory", "laboratorio",
             }
             for k, v in body.items():
                 if k in reserved:
@@ -1467,13 +1562,13 @@ async def extrair_exames_endpoint(request: Request):
 
     raw_text = raw_text.strip()
     if raw_text:
-        # Tenta extrair nome do paciente e data de coleta do cabeçalho do PDF se presentes
         pac_match = re.search(r"Paciente\s*:\s*([^\n\r|]+)", raw_text, flags=re.IGNORECASE)
         if pac_match:
             patient_name = pac_match.group(1).strip()
-        dt_match = re.search(r"(?:Data\s+da\s+Coleta|Coleta|Data)\s*:\s*(\d{2}/\d{2}/\d{2,4}|\d{4}-\d{2}-\d{2})", raw_text, flags=re.IGNORECASE)
-        if dt_match:
-            exam_date = dt_match.group(1).strip()
+        if not explicit_date_provided:
+            exam_date = _extract_collection_date_from_text(raw_text, exam_date)
+        if not explicit_lab_provided:
+            lab_name = _extract_lab_name_from_text(raw_text, lab_name)
 
         text_biomarkers = _extract_biomarkers_from_text(raw_text)
         existing_codes = {b["code"] for b in extracted}
@@ -1502,10 +1597,17 @@ async def extrair_exames_endpoint(request: Request):
         "total_extracted": len(extracted),
         "document_hash": document_hash,
         "extracted_text_preview": text_preview,
+        "laboratory": lab_name,
+        "laboratorio": lab_name,
+        "collection_date": exam_date,
+        "data_coleta": exam_date,
         "cabecalho": {
             "paciente_nome": patient_name,
             "data_exame": exam_date,
-            "laboratorio": "Open Health Lab Integration",
+            "data_coleta": exam_date,
+            "collection_date": exam_date,
+            "laboratorio": lab_name,
+            "laboratory": lab_name,
             "document_hash": document_hash,
         },
         "biomarkers": extracted,

@@ -313,7 +313,7 @@ async def test_authorizer_sandbox_fallback_and_mobile_sources(mem_client, monkey
         body["authorization_url"] == "https://connections.rook-connect.review/client_uuid/9bc48033-9d8e-45b4-8c6a-1ef162951442/user_id/user-sandbox-1"
     )
     assert body["connected"] is True
-    assert body["mode"] == "sandbox_fallback"
+    assert body["mode"] == "oauth_redirect"
 
     async with mem_client.maker() as s:
         mapping = (await s.execute(select(TerraUserMapping).where(TerraUserMapping.rook_user_id == "user-sandbox-1"))).scalars().first()
@@ -534,7 +534,7 @@ async def test_authorizer_connection_page_url_and_v1_path_fallback(mem_client, m
     r_fb = await mem_client.get("/wearables/authorizer/user-conn-1/garmin")
     assert r_fb.status_code == 200
     fb_body = r_fb.json()
-    assert fb_body["mode"] == "sandbox_fallback"
+    assert fb_body["mode"] == "oauth_redirect"
     assert fb_body["connected"] is True
     expected_conn_url = f"https://connections.rook-connect.review/client_uuid/{DEFAULT_ROOK_CLIENT_UUID}/user_id/user-conn-1"
     assert fb_body["connection_page_url"] == expected_conn_url
@@ -720,5 +720,45 @@ async def test_two_distinct_pdfs_extract_completely_different_biomarkers(mem_cli
     assert b2_map["glicose"] == 108.0
     assert b2_map["tsh"] == 3.8
     assert b2_map["colesterol"] == 210.0
+
+
+@pytest.mark.asyncio
+async def test_decimal_dot_original_unit_and_lab_date_extraction(mem_client):
+    pdf_bytes = _build_in_memory_pdf(
+        [
+            "Laboratorio Fleury Medicina e Saude",
+            "Paciente: Ana Beatriz",
+            "Liberado em: 14/11/2026",
+            "FERRITINA SERICA: 18.5 ng/mL (Ref: 30.0 a 300.0 ng/mL)",
+            "SODIO SERICO: 141.2 mmol/L (Ref: 135 a 145 mmol/L)",
+            "POTASSIO SERICO: 4.3 mmol/L (Ref: 3.5 a 5.1 mmol/L)",
+            "LEUCOCITOS TOTAIS: 6.450 /mm3 (Ref: 4.000 a 10.000 /mm3)",
+        ]
+    )
+
+    resp = await mem_client.post(
+        "/api/extrair",
+        files={"file": ("fleury_laudo.pdf", pdf_bytes, "application/pdf")},
+    )
+    assert resp.status_code == 200
+    data = resp.json()
+
+    # Verifica extração de laboratório e data de coleta do cabeçalho do PDF
+    assert "Fleury" in data["laboratory"]
+    assert "Fleury" in data["cabecalho"]["laboratorio"]
+    assert data["collection_date"] == "14/11/2026"
+    assert data["cabecalho"]["data_coleta"] == "14/11/2026"
+
+    by_analito = {b["analito"]: b for b in data["biomarkers"]}
+    # 1. Ponto decimal preservado (18.5 -> 18.5, nunca truncado para 18) e ponto de milhar tratado (6.450 -> 6450.0)
+    assert by_analito["ferritina"]["value"] == 18.5
+    assert by_analito["sodio"]["value"] == 141.2
+    assert by_analito["potassio"]["value"] == 4.3
+    assert by_analito["leucocitos"]["value"] == 6450.0
+
+    # 2. Unidade original do PDF preservada ('mmol/L' em vez do padrão 'mEq/L' do dicionário)
+    assert by_analito["sodio"]["unit"] == "mmol/L"
+    assert by_analito["potassio"]["unit"] == "mmol/L"
+
 
 
