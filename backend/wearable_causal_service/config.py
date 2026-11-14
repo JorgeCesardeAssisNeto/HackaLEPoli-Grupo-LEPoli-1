@@ -1,8 +1,12 @@
+import os
 import re
 from pathlib import Path
 from urllib.parse import urlsplit
-from pydantic import field_validator
+from pydantic import field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+ROOK_PRODUCTION_BASE_URL = "https://api.rook-connect.com"
+ROOK_SANDBOX_BASE_URL = "https://api.rook-connect.review"
 
 BASE_DIR = Path(__file__).resolve().parent
 
@@ -46,9 +50,10 @@ class Settings(BaseSettings):
     DATABASE_URL: str = f"sqlite+aiosqlite:///{DEFAULT_DB_PATH}"
 
     # ROOK API
-    ROOK_API_BASE_URL: str = "https://api.rook-connect.com"
+    ROOK_API_BASE_URL: str = ROOK_PRODUCTION_BASE_URL
     ROOK_CLIENT_UUID: str = ""
     ROOK_SECRET_KEY: str = ""
+    ROOK_CLIENT_SECRET: str = ""
     ROOK_WEBHOOK_SECRET: str = ""
 
     # Serviços internos (HTTP REST)
@@ -69,6 +74,16 @@ class Settings(BaseSettings):
         if url.startswith("sqlite:///"):
             return url.replace("sqlite:///", "sqlite+aiosqlite:///", 1)
         return re.sub(r"^(postgres|postgresql)://", "postgresql+asyncpg://", url)
+
+    @model_validator(mode="after")
+    def _normalize_rook_settings(self):
+        """Aceita ROOK_CLIENT_SECRET como alias e usa URL Sandbox quando DEBUG=True e sem override explícito."""
+        if is_placeholder(self.ROOK_SECRET_KEY) and not is_placeholder(self.ROOK_CLIENT_SECRET):
+            self.ROOK_SECRET_KEY = self.ROOK_CLIENT_SECRET
+        if self.DEBUG and not os.getenv("ROOK_API_BASE_URL"):
+            if self.ROOK_API_BASE_URL == ROOK_PRODUCTION_BASE_URL:
+                self.ROOK_API_BASE_URL = ROOK_SANDBOX_BASE_URL
+        return self
 
     @property
     def database_display(self) -> str:

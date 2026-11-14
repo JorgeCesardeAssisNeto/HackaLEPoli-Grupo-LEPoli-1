@@ -290,3 +290,143 @@ async def test_polling_skips_empty_payload_and_splits_data_array(mem_client, mon
     async with mem_client.maker() as s:
         rows = (await s.execute(select(WearableDailyMetric).where(WearableDailyMetric.patient_id == "pt-poll"))).scalars().all()
     assert len(rows) == 2
+
+
+@pytest.mark.asyncio
+async def test_authorizer_sandbox_fallback_and_mobile_sources(mem_client, monkeypatch):
+    from models.mappings import TerraUserMapping
+
+    monkeypatch.setattr(settings, "ROOK_CLIENT_UUID", "")
+    monkeypatch.setattr(settings, "ROOK_SECRET_KEY", "")
+    monkeypatch.setattr(settings, "ROOK_CLIENT_SECRET", "")
+    monkeypatch.setattr(causal_engine.fhir_client, "get_biomarker_evolution", AsyncMock(return_value=None))
+
+    resp = await mem_client.get(
+        "/wearables/authorizer/user-sandbox-1/apple_health",
+        headers={"Authorization": "Bearer lovable-jwt-token", "X-Service-Token": "svc-123"},
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["user_id"] == "user-sandbox-1"
+    assert body["data_source"] == "apple_health"
+    assert body["authorization_url"] is None
+    assert body["connected"] is True
+    assert body["mode"] == "sandbox_fallback"
+
+    async with mem_client.maker() as s:
+        mapping = (await s.execute(select(TerraUserMapping).where(TerraUserMapping.rook_user_id == "user-sandbox-1"))).scalars().first()
+        metrics = (await s.execute(select(WearableDailyMetric).where(WearableDailyMetric.patient_id == "user-sandbox-1"))).scalars().all()
+    assert mapping is not None and mapping.is_active is True
+    assert len(metrics) == 1
+
+    # Immediate causal evaluation works right after authorizer fallback
+    ev = await mem_client.post("/causal/evaluate/user-sandbox-1")
+    assert ev.status_code == 200
+
+
+@pytest.mark.asyncio
+async def test_authorizer_oauth_redirect_with_sandbox_url_fallback(mem_client, monkeypatch):
+    import httpx
+    from config import ROOK_PRODUCTION_BASE_URL, ROOK_SANDBOX_BASE_URL
+
+    monkeypatch.setattr(settings, "ROOK_API_BASE_URL", ROOK_PRODUCTION_BASE_URL)
+    monkeypatch.setattr(settings, "ROOK_CLIENT_UUID", "uuid-real")
+    monkeypatch.setattr(settings, "ROOK_SECRET_KEY", "")
+    monkeypatch.setattr(settings, "ROOK_CLIENT_SECRET", "secret-via-alias")
+
+    calls = []
+
+    def mock_handler(request: httpx.Request):
+        calls.append(str(request.url))
+        if str(request.url).startswith(ROOK_PRODUCTION_BASE_URL):
+            return httpx.Response(401, json={"detail": "wrong env"})
+        if str(request.url).startswith(ROOK_SANDBOX_BASE_URL):
+            return httpx.Response(200, json={"authorization_url": "https://oauth.garmin.com/auth?state=123"})
+        return httpx.Response(404)
+
+    transport = httpx.MockTransport(mock_handler)
+    orig_client = httpx.AsyncClient
+    monkeypatch.setattr(httpx, "AsyncClient", lambda **kw: orig_client(transport=transport, **kw))
+
+    resp = await mem_client.get("/wearables/authorizer/user-oauth-1/garmin")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["mode"] == "oauth_redirect"
+    assert body["connected"] is False
+    assert body["authorization_url"] == "https://oauth.garmin.com/auth?state=123"
+    assert len(calls) == 2
+
+
+@pytest.mark.asyncio
+async def test_causal_evaluate_inline_ferritin_and_wearables_override(mem_client, monkeypatch):
+    fhir_spy = AsyncMock(return_value=None)
+    monkeypatch.setattr(causal_engine.fhir_client, "get_biomarker_evolution", fhir_spy)
+
+    # 1. Inline ferritin_ng_ml (low: 19.5 ng/mL) + daytime tachycardia & low steps -> CLINICAL_ANOMALY without calling localhost:5000
+    resp1 = await mem_client.post(
+        "/causal/evaluate/pt-inline-1",
+        json={
+            "ferritin_ng_ml": 19.5,
+            "steps": 3200,
+            "avg_hr_day_bpm": 96.0,
+            "resting_hr_bpm": 74.0,
+            "hrv_rmssd_ms": 42.0,
+            "sleep_duration_hours": 7.0,
+            "sleep_stage_deep_pct": 18.0,  # percentage > 1 auto-normalized to 0.18
+            "caffeine_mg": 10.0,
+            "screen_time_min": 45.0,
+            "alcohol_units": 0.0,
+        },
+        headers={"Authorization": "Bearer lovable-token", "X-Service-Token": "tok"},
+    )
+    assert resp1.status_code == 200
+    data1 = resp1.json()
+    t4_1 = next(t for t in data1["targets_evaluated"] if t["target_id"] == "TARGET_4_ANEMIA_LOAD")
+    assert t4_1["mitigation_verdict"] == "CLINICAL_ANOMALY"
+    assert t4_1["trigger_alert"] is True
+    assert "19.5 ng/mL" in t4_1["clinical_verdict"]
+    assert fhir_spy.await_count == 0
+
+    # 2. Inline biomarkers list (normal ferritin: 82.0 ng/mL) + high caffeine (130 mg) -> MITIGATED
+    resp2 = await mem_client.post(
+        "/causal/evaluate/pt-inline-2",
+        json={
+            "biomarkers": [
+                {"name": "Ferritina Sérica", "code": "2276-4", "value": 82.0, "unit": "ng/mL", "status": "NORMAL"}
+            ],
+            "steps": 3800,
+            "avg_hr_day_bpm": 95.0,
+            "caffeine_mg": 130.0,
+        },
+    )
+    assert resp2.status_code == 200
+    data2 = resp2.json()
+    t4_2 = next(t for t in data2["targets_evaluated"] if t["target_id"] == "TARGET_4_ANEMIA_LOAD")
+    assert t4_2["mitigation_verdict"] == "MITIGATED"
+    assert t4_2["trigger_alert"] is False
+    assert "82.0 ng/mL" in t4_2["clinical_verdict"]
+    assert fhir_spy.await_count == 0
+
+
+@pytest.mark.asyncio
+async def test_webhook_alias_api_webhooks_rook(mem_client, monkeypatch):
+    monkeypatch.setattr(settings, "ROOK_WEBHOOK_SECRET", "")
+    monkeypatch.setattr(causal_engine.fhir_client, "get_biomarker_evolution", AsyncMock(return_value=None))
+
+    resp = await mem_client.post(
+        "/api/webhooks/rook",
+        json={
+            "user_id": "pt-alias-1",
+            "date": "2026-11-14",
+            "steps": 7400,
+            "resting_heart_rate": 66,
+            "average_heart_rate": 79,
+            "hrv": 44,
+        },
+        headers={"Authorization": "Bearer lovable-token", "X-Service-Token": "service-secret"},
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["status"] == "acknowledged"
+    assert body["patient_id"] == "pt-alias-1"
+    assert body["records_ingested"] == 1

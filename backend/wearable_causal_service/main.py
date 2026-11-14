@@ -7,7 +7,7 @@ import uvicorn
 from config import settings
 from database import init_db, engine
 from tasks.polling import start_scheduler, shutdown_scheduler
-from routers import webhook_router, ingestion_router, causal_router, health_router
+from routers import webhook_router, api_webhook_router, ingestion_router, causal_router, health_router
 
 # Configure structured logging
 logging.basicConfig(
@@ -58,10 +58,12 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"],
 )
 
 # Include Application Routers
 app.include_router(webhook_router)
+app.include_router(api_webhook_router)
 app.include_router(ingestion_router)
 app.include_router(causal_router)
 app.include_router(health_router)

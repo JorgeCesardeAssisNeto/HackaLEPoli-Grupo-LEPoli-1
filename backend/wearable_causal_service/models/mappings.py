@@ -19,3 +19,7 @@ class RookUserMapping(Base):
     created_at = Column(DateTime, default=utc_now_naive, nullable=False)
 
     __table_args__ = (Index("idx_rook_mapping_patient", "patient_id"),)
+
+
+# Alias retrocompatível
+TerraUserMapping = RookUserMapping

@@ -2,11 +2,104 @@ import logging
 import math
 from typing import List, Dict, Any, Optional, Tuple
 from schemas.causal import TargetEvaluationResult
-from schemas.interservice import FHIRLabEvolutionResponse
+from schemas.interservice import FHIRLabEvolutionResponse, FHIRObservationPoint
 from clients.fhir_client import FHIRLabClient, fhir_lab_client
 from clients.nhanes_client import NHANESBaselineClient, nhanes_client
 
 logger = logging.getLogger(__name__)
+
+
+def _safe_float(val: Any) -> Optional[float]:
+    if val is None or isinstance(val, bool):
+        return None
+    if isinstance(val, (int, float)):
+        return float(val)
+    if isinstance(val, str):
+        try:
+            return float(val.strip().replace(",", "."))
+        except ValueError:
+            return None
+    return None
+
+
+def build_ferritin_lab_from_override(
+    ferritin_ng_ml: Optional[float] = None,
+    biomarkers: Optional[List[Dict[str, Any]]] = None,
+    lab_results: Optional[List[Dict[str, Any]]] = None,
+) -> Optional[FHIRLabEvolutionResponse]:
+    """Constrói resposta de Ferritina (LOINC 2276-4) a partir de dados enviados pelo frontend."""
+    if ferritin_ng_ml is not None:
+        val = float(ferritin_ng_ml)
+        status_cls = "AMARELO" if val < 30.0 else "VERDE"
+        return FHIRLabEvolutionResponse(
+            codigo_loinc="2276-4",
+            nome_analito="Ferritina",
+            unidade="ng/mL",
+            serie_temporal=[
+                FHIRObservationPoint(valor_numerico=val, status_classificacao=status_cls)
+            ],
+        )
+
+    items = list(biomarkers or []) + list(lab_results or [])
+    points: List[FHIRObservationPoint] = []
+    for item in items:
+        if not isinstance(item, dict):
+            continue
+        code = str(item.get("code") or item.get("codigo_loinc") or item.get("loinc") or "").strip()
+        name = str(
+            item.get("name")
+            or item.get("nome")
+            or item.get("nome_exame")
+            or item.get("nome_analito")
+            or item.get("analyte")
+            or ""
+        ).strip().lower()
+        if code != "2276-4" and "ferritin" not in name and "ferritina" not in name:
+            continue
+
+        val = _safe_float(
+            item.get("value")
+            if item.get("value") is not None
+            else (
+                item.get("valor_numerico")
+                if item.get("valor_numerico") is not None
+                else (item.get("valor") if item.get("valor") is not None else item.get("result"))
+            )
+        )
+        ref_min = _safe_float(
+            item.get("reference_min")
+            if item.get("reference_min") is not None
+            else (item.get("faixa_referencia_min") if item.get("faixa_referencia_min") is not None else item.get("ref_min"))
+        )
+        raw_status = str(item.get("status") or item.get("status_classificacao") or "").strip().upper()
+        if raw_status in ("VERMELHO", "CRITICAL", "ALTERACAO_ACENTUADA"):
+            status_cls = "VERMELHO"
+        elif raw_status in (
+            "AMARELO", "LOW", "BAIXO", "BORDERLINE", "LIMITROFE",
+            "WARNING", "ALTERADO", "ABNORMAL", "ALTERADO_LEVE", "ALTERADO_MODERADO",
+        ):
+            status_cls = "AMARELO"
+        elif val is not None and (val < 30.0 or (ref_min is not None and val < ref_min)):
+            status_cls = "AMARELO"
+        else:
+            status_cls = "VERDE"
+
+        points.append(
+            FHIRObservationPoint(
+                data_coleta=str(item.get("date") or item.get("data_coleta") or "") or None,
+                valor_numerico=val,
+                status_classificacao=status_cls,
+            )
+        )
+
+    if points:
+        return FHIRLabEvolutionResponse(
+            codigo_loinc="2276-4",
+            nome_analito="Ferritina",
+            unidade="ng/mL",
+            serie_temporal=points,
+        )
+    return None
 
 class CausalInferenceEngine:
     """
@@ -27,7 +120,8 @@ class CausalInferenceEngine:
         self,
         patient_id: str,
         current_metric: Dict[str, Any],
-        historical_records: List[Dict[str, Any]]
+        historical_records: List[Dict[str, Any]],
+        ferritin_lab_override: Optional[FHIRLabEvolutionResponse] = None,
     ) -> List[TargetEvaluationResult]:
         """
         Executes causal disambiguation for the 4 Clinical Targets over a sliding window.
@@ -48,7 +142,9 @@ class CausalInferenceEngine:
         results.append(res_t3)
 
         # Target 4: Hematological Screening / Daytime Load Index (ICD) with FHIR Lab Retrospective Anchoring
-        res_t4 = await self.evaluate_target_4_anemia_load(patient_id, current_metric)
+        res_t4 = await self.evaluate_target_4_anemia_load(
+            patient_id, current_metric, ferritin_lab_override=ferritin_lab_override
+        )
         results.append(res_t4)
 
         return results
@@ -337,7 +433,8 @@ class CausalInferenceEngine:
     async def evaluate_target_4_anemia_load(
         self,
         patient_id: str,
-        metric: Dict[str, Any]
+        metric: Dict[str, Any],
+        ferritin_lab_override: Optional[FHIRLabEvolutionResponse] = None,
     ) -> TargetEvaluationResult:
         avg_hr_day = metric.get("avg_hr_day_bpm")
         steps = metric.get("steps")
@@ -379,12 +476,13 @@ class CausalInferenceEngine:
             "Se não houver histórico de anemia e o consumo de cafeína for alto, mitiga o alarme."
         )
 
-        # Query FHIR Lab Service (Port 5000) for retrospective anchoring on Ferritin
-        ferritin_lab: Optional[FHIRLabEvolutionResponse] = None
-        try:
-            ferritin_lab = await self.fhir_client.get_biomarker_evolution(patient_id, "2276-4")
-        except Exception as e:
-            logger.warning("Failed to query FHIR Lab for patient %s: %s", patient_id, e)
+        # Query FHIR Lab Service (Port 5000) unless lab override was supplied directly by frontend
+        ferritin_lab: Optional[FHIRLabEvolutionResponse] = ferritin_lab_override
+        if ferritin_lab is None:
+            try:
+                ferritin_lab = await self.fhir_client.get_biomarker_evolution(patient_id, "2276-4")
+            except Exception as e:
+                logger.warning("Failed to query FHIR Lab for patient %s: %s", patient_id, e)
 
         prior_ferritin_borderline = False
         prior_ferritin_value = None

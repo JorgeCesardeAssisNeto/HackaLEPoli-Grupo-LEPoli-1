@@ -30,6 +30,7 @@ from services.rook_normalizer import (
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/wearables", tags=["ROOK Wearables Ingestion"])
+api_webhook_router = APIRouter(tags=["ROOK Wearables Ingestion"])
 
 SIGNATURE_HEADERS = ("x-rook-signature", "rook-signature", "x-rook-hash")
 
@@ -120,3 +121,13 @@ async def handle_rook_webhook(request: Request, db: AsyncSession = Depends(get_d
         await db.rollback()
         logger.info("Conflito de upsert concorrente; repetindo processamento do webhook.")
         return await _process(db, payload)
+
+
+@api_webhook_router.post(
+    "/api/webhooks/rook",
+    response_model=RookWebhookResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Alias do Webhook da ROOK API (/api/webhooks/rook)",
+)
+async def handle_rook_webhook_alias(request: Request, db: AsyncSession = Depends(get_db)):
+    return await handle_rook_webhook(request, db)
