@@ -1,0 +1,34 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1794663539673,
+      "tag": "0000_accounts_and_approved_connections",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1794666783769,
+      "tag": "0001_patient_reports_and_wearable_records",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1794667997527,
+      "tag": "0002_exam_feedback_followups_and_sharing",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1794669964713,
+      "tag": "0003_doctor_consultation_slots",
+      "breakpoints": true
+    }
+  ]
+}

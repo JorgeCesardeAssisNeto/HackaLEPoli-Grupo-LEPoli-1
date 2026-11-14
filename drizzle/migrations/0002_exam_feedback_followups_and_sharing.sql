@@ -1,0 +1,43 @@
+CREATE TABLE public.report_shares (report_id uuid NOT NULL REFERENCES public.patient_reports(id) ON DELETE CASCADE, patient_id uuid NOT NULL, doctor_id uuid NOT NULL, created_at timestamptz NOT NULL DEFAULT now(), PRIMARY KEY(report_id, doctor_id));
+GRANT SELECT, INSERT, DELETE ON public.report_shares TO authenticated;
+GRANT ALL ON public.report_shares TO service_role;
+ALTER TABLE public.report_shares ENABLE ROW LEVEL SECURITY;
+CREATE POLICY shares_read ON public.report_shares FOR SELECT TO authenticated USING (patient_id = auth.uid() OR (doctor_id = auth.uid() AND EXISTS(SELECT 1 FROM public.care_connections c WHERE c.patient_id = report_shares.patient_id AND c.doctor_id = auth.uid() AND c.status = 'approved')));
+CREATE POLICY shares_insert ON public.report_shares FOR INSERT TO authenticated WITH CHECK (patient_id = auth.uid() AND EXISTS(SELECT 1 FROM public.patient_reports r WHERE r.id = report_id AND r.patient_id = auth.uid()) AND EXISTS(SELECT 1 FROM public.care_connections c WHERE c.patient_id = auth.uid() AND c.doctor_id = report_shares.doctor_id AND c.status = 'approved'));
+CREATE POLICY shares_delete ON public.report_shares FOR DELETE TO authenticated USING (patient_id = auth.uid());
+CREATE POLICY reports_shared_read ON public.patient_reports FOR SELECT TO authenticated USING (public.has_role(auth.uid(), 'doctor') AND EXISTS(SELECT 1 FROM public.report_shares s JOIN public.care_connections c ON c.patient_id = s.patient_id AND c.doctor_id = s.doctor_id WHERE s.report_id = patient_reports.id AND s.doctor_id = auth.uid() AND c.status = 'approved'));
+CREATE TABLE public.exam_feedback (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), report_id uuid NOT NULL REFERENCES public.patient_reports(id) ON DELETE CASCADE, patient_id uuid NOT NULL, doctor_id uuid NOT NULL DEFAULT auth.uid(), message text NOT NULL, created_at timestamptz NOT NULL DEFAULT now(), CONSTRAINT feedback_length CHECK (length(trim(message)) BETWEEN 1 AND 4000));
+GRANT SELECT, INSERT ON public.exam_feedback TO authenticated;
+GRANT ALL ON public.exam_feedback TO service_role;
+ALTER TABLE public.exam_feedback ENABLE ROW LEVEL SECURITY;
+CREATE POLICY feedback_read ON public.exam_feedback FOR SELECT TO authenticated USING (patient_id = auth.uid() OR (doctor_id = auth.uid() AND EXISTS(SELECT 1 FROM public.report_shares s JOIN public.care_connections c ON c.patient_id=s.patient_id AND c.doctor_id=s.doctor_id WHERE s.report_id=exam_feedback.report_id AND s.doctor_id=auth.uid() AND c.status='approved')));
+CREATE POLICY feedback_insert ON public.exam_feedback FOR INSERT TO authenticated WITH CHECK (doctor_id=auth.uid() AND public.has_role(auth.uid(),'doctor') AND EXISTS(SELECT 1 FROM public.patient_reports r WHERE r.id=report_id AND r.patient_id=exam_feedback.patient_id) AND EXISTS(SELECT 1 FROM public.report_shares s JOIN public.care_connections c ON c.patient_id=s.patient_id AND c.doctor_id=s.doctor_id WHERE s.report_id=exam_feedback.report_id AND s.patient_id=exam_feedback.patient_id AND s.doctor_id=auth.uid() AND c.status='approved'));
+CREATE TABLE public.exam_followups (report_id uuid PRIMARY KEY REFERENCES public.patient_reports(id) ON DELETE CASCADE, patient_id uuid NOT NULL, answers jsonb NOT NULL, urgent boolean NOT NULL DEFAULT false, notify_consent boolean NOT NULL DEFAULT false, updated_at timestamptz NOT NULL DEFAULT now());
+GRANT SELECT ON public.exam_followups TO authenticated;
+GRANT ALL ON public.exam_followups TO service_role;
+ALTER TABLE public.exam_followups ENABLE ROW LEVEL SECURITY;
+CREATE POLICY followups_owner ON public.exam_followups FOR SELECT TO authenticated USING (patient_id=auth.uid());
+CREATE TABLE public.care_notifications (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), report_id uuid NOT NULL REFERENCES public.patient_reports(id) ON DELETE CASCADE, patient_id uuid NOT NULL, doctor_id uuid NOT NULL, created_at timestamptz NOT NULL DEFAULT now(), read_at timestamptz, UNIQUE(report_id,doctor_id));
+GRANT SELECT, UPDATE ON public.care_notifications TO authenticated;
+GRANT ALL ON public.care_notifications TO service_role;
+ALTER TABLE public.care_notifications ENABLE ROW LEVEL SECURITY;
+CREATE POLICY notifications_read ON public.care_notifications FOR SELECT TO authenticated USING (patient_id=auth.uid() OR (doctor_id=auth.uid() AND EXISTS(SELECT 1 FROM public.care_connections c WHERE c.patient_id=care_notifications.patient_id AND c.doctor_id=auth.uid() AND c.status='approved')));
+CREATE POLICY notifications_update ON public.care_notifications FOR UPDATE TO authenticated USING (doctor_id=auth.uid() AND EXISTS(SELECT 1 FROM public.care_connections c WHERE c.patient_id=care_notifications.patient_id AND c.doctor_id=auth.uid() AND c.status='approved')) WITH CHECK (doctor_id=auth.uid());
+REVOKE UPDATE ON public.care_notifications FROM authenticated;
+GRANT UPDATE(read_at) ON public.care_notifications TO authenticated;
+CREATE FUNCTION public.submit_exam_followup(_report_id uuid, _answers jsonb, _consent boolean) RETURNS integer LANGUAGE plpgsql SECURITY DEFINER SET search_path=public AS $$
+DECLARE is_urgent boolean; notified integer := 0;
+BEGIN
+ IF NOT public.has_role(auth.uid(),'patient') OR NOT EXISTS(SELECT 1 FROM public.patient_reports WHERE id=_report_id AND patient_id=auth.uid()) THEN RAISE EXCEPTION 'Forbidden'; END IF;
+ IF jsonb_typeof(_answers) <> 'object' OR NOT (_answers ?& ARRAY['chest_pain','breathlessness','fainting','medication_change','fasting']) OR EXISTS(SELECT 1 FROM jsonb_each(_answers) e WHERE jsonb_typeof(e.value) <> 'boolean') THEN RAISE EXCEPTION 'Invalid answers'; END IF;
+ is_urgent := (_answers->>'chest_pain')::boolean OR (_answers->>'breathlessness')::boolean OR (_answers->>'fainting')::boolean;
+ INSERT INTO public.exam_followups(report_id,patient_id,answers,urgent,notify_consent) VALUES(_report_id,auth.uid(),_answers,is_urgent,_consent) ON CONFLICT(report_id) DO UPDATE SET answers=excluded.answers, urgent=excluded.urgent, notify_consent=excluded.notify_consent, updated_at=now();
+ IF is_urgent AND _consent THEN
+ INSERT INTO public.care_notifications(report_id,patient_id,doctor_id) SELECT _report_id,auth.uid(),doctor_id FROM public.care_connections WHERE patient_id=auth.uid() AND status='approved' ON CONFLICT(report_id,doctor_id) DO UPDATE SET read_at=NULL,created_at=now();
+ GET DIAGNOSTICS notified = ROW_COUNT;
+ END IF;
+ RETURN notified;
+END $$;
+REVOKE ALL ON FUNCTION public.submit_exam_followup(uuid,jsonb,boolean) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.submit_exam_followup(uuid,jsonb,boolean) TO authenticated;
+COMMENT ON TABLE public.exam_followups IS 'Conservative symptom safety questionnaire; not a validated predictive model or diagnosis. Notifications contain only a request for urgent patient contact.';

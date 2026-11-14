@@ -1,0 +1,3 @@
+import { createFileRoute } from '@tanstack/react-router';
+import { HealthWorkspace } from '@/components/health-workspace';
+export const Route = createFileRoute('/demo')({ head: () => ({ meta: [{ title: 'Demonstração das jornadas | Open Salus' }, { name: 'description', content: 'Jornadas educativas de paciente e médico com dados fictícios e extração local de PDFs.' }, { property: 'og:title', content: 'Demonstração | Open Salus' }, { property: 'og:description', content: 'Explore as jornadas com dados demonstrativos, sem diagnóstico.' }, { property: 'og:type', content: 'website' }, { name: 'twitter:card', content: 'summary' }] }), component: HealthWorkspace });

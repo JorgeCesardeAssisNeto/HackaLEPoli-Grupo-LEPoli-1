@@ -1,0 +1,45 @@
+# Open Health Brasil
+- [x] Auditar extração Render e leitura: corrigida conferência limitada ao preview de 500 caracteres, usando texto completo apenas para proveniência. Dois PDFs enviados pela UI autenticada, decimais/referências e recarregamento conferidos; 133 testes passaram, nenhum laudo real alterado.
+- [x] Conferir os demais destinos: revisão, resumo, histórico, avisos, médico, compartilhamento, PDF/FHIR e avaliação. Corrigido uso do status mais recente em coleta antiga, null numérico e classificação de catálogo aplicada a referência diferente. Persistência e exportações mantêm os campos; registros e permissões existentes preservados.
+- [ ] Corrigir extração incompleta no Render: PDF de tabela com dois componentes retorna só creatinina; laudo hipotético de 62 resultados retorna 26, com referências de catálogo diferentes das do documento. Depende do extrator publicado no Render; não substituir silenciosamente nem recuperar valores antigos truncados sem o PDF original.
+- [x] Renovar gráfico de componentes com referência Carbon: anel fino em verde/âmbar/azul vibrantes, total central, legenda com contagens e percentuais. Dados reais preservados; filtro dos 52 componentes verificado, 10 testes passaram e telas menores sem transbordamento.
+- [x] Clarear discretamente o tema e tornar o vidro e o fundo fluido verde/azul perceptíveis com opacidade de 22%, reflexos e desfoque; ícones refinados. Movimento e modo reduzido verificados na conta autenticada, desktop/774px/390px sem transbordamento ou erros; 10 testes passaram. Referências Oura e Withings apresentadas; organização atual preservada nesta etapa.
+- [x] Aplicar tema escuro editorial, vidro sutil em cartões, serifada Instrument Serif + DM Sans, cores delicadas nos quatro wearables e paleta variável nos gráficos; conta autenticada, seleção de biomarcador, envio, 774px e celular verificados sem transbordamento ou erros.
+- [x] Conferir proveniência na entrada comum dos PDFs e nas edições de revisão; campos ausentes ficam desconhecidos e unidades preservadas em tabelas/PDF/FHIR. Dois PDFs revalidados na conta autenticada sem salvar dados fictícios; registros existentes intactos. 131 testes passaram.
+- [x] Ocultar simulações no painel e bloquear medições/alertas sandbox; portal direto com instruções verificado em conta autenticada, 952px sem transbordamento, 127 testes passaram. Render ainda retorna dados de teste; conexão pessoal não autorizada nesta verificação.
+- [x] Aplicar o modelo anexado somente ao Hub do Médico: navegação lateral, painel, pacientes, laudos, histórico, autorizações e notificações; 116 testes passaram, visual desktop/celular verificado com dados isolados, área real do paciente preservada. Sem mudanças em serviços, banco ou permissões.
+- [ ] Verificar o novo Hub ponta a ponta com conta médica e laudos autorizados: seleção, feedback, notificações e recarregamento — bloqueado pela ausência de contas médicas (três contas existentes são pacientes). Ações exercitadas com testes isolados; não alterar papéis ou registros reais para validação.
+- [x] Revalidar atualização Render: POST sync, histórico de 30 dias, alertas e portal ROOK; 112 testes, conta autenticada, 7 registros/3 alertas, recarregamento e celular verificados sem enviar laudos salvos.
+- [x] Atualizar ROOK com identidade autenticada, nova aba OAuth, retorno seguro, verificação de 5s/2min, sincronização sequencial e erros reais; 41 testes passaram e conexão/retorno/recarregamento foram verificados com conta autenticada sem alterações no Render.
+- [x] Validar medições no fluxo ROOK — histórico retorna 200 com 7 dias; sincronização Sandbox retorna 7 registros processados e 3 alertas. Envio de laudos reais não executado sem consentimento.
+- [x] Implementar envio consentido FormData (arquivo, motor=nuvem), status tri-state, consulta de explicações e preservação no esquema de armazenamento/FHIR; 64 testes passaram, PDF digital e imagem enviados pela tela receberam HTTP 404 real.
+- [ ] Validar extração visual e salvamento/recarregamento/exportação ponta a ponta — POST /api/extrair retorna 200, mas dois PDFs fictícios diferentes retornam os mesmos cinco exames, valores e paciente de exemplo; importação bloqueada para evitar histórico falso. Depende de processamento real do arquivo no Render.
+- [x] Corrigir nomes e comparação por referência em leitura, revisão, tela e exportação; verificar PDF fictício, 35 testes, PDF/FHIR e falha real HTTP 404 do conhecimento no Render, sem alterar o backend.
+- [ ] Completar envio/armazenamento/recarregamento e interpretação no Render — conhecimento e interpretação retornam 200 em teste sintético; extração ainda retorna conteúdo fixo, impedindo validar o ciclo com conteúdo fiel ao documento.
+- [x] Proteger chamadas causais com token de serviço e implementar envio autorizado de exames sintéticos; verificar avaliação demonstrativa e alertas reais autenticados, celular e 32 testes.
+- [ ] Verificar envio completo de laudo sintético salvo — criação de paciente temporário falhou; não enviar exames da conta real sem comprovação de que são sintéticos.
+- [x] Adaptar as sete fontes ROOK e o contrato causal opcional; verificar retorno sandbox real na página autenticada, celular e 32 testes.
+- [ ] Validar OAuth pessoal e contexto clínico real — Render retorna sandbox_fallback sem authorization_url; portal disponível, mas conexão pessoal exige OAuth do provedor, não dados iniciais sintéticos.
+- [x] Adicionar seção de agendamento do paciente, consulta de horários reais, reserva protegida e cancelamento; conferir página autenticada e celular.
+- [ ] Verificar reserva e cancelamento completos com disponibilidade publicada — aguarda a seção de agenda do médico e seus horários reais.
+- [x] Adicionar feedback médico com compartilhamento explícito de laudos e revogação.
+- [x] Adicionar avisos por referência, perguntas de segurança e notificações no painel médico, sem alegar predição validada.
+- [x] Adicionar CSV real de wearables; verificar formato, rejeição de dados inválidos e página autenticada.
+- [ ] Validar envio de feedback, notificação e salvamento CSV entre contas de teste — criação da conta temporária falhou; não alterar histórico clínico real para testes.
+- [ ] Integrar predição clínica validada — faltam modelo, contrato de entrada/saída e critérios clínicos aprovados; avisos atuais usam referência do laudo e sintomas de alarme declarados.
+- [x] Criar área autenticada do paciente com carrossel e histórico dos exames.
+- [x] Implementar armazenamento privado de laudos revisados e medições de arquivo no Lovable Cloud.
+- [x] Verificar leitura de 62 biomarcadores, acesso autenticado, regras e apresentação no celular.
+- [ ] Verificar salvamento e persistência completos — conta temporária não pôde ser criada; não inserir laudo fictício na conta real.
+- [x] Confirmar sincronização Sandbox — autorização, POST sync, histórico e alertas retornam 200 e foram verificados na tela; não representa sincronização de relógio pessoal.
+- [x] Criar apresentação, cadastro e login com email e senha.
+- [x] Proteger perfis, IDs e conexões médico-paciente com autorização e revogação.
+- [x] Restringir administradores a convites privados e verificar os acessos.
+- [x] Emitir o primeiro convite privado de administrador para o email indicado pelo responsável.
+- [x] Integrar extração real de PDF com revisão e separação dos resultados importados.
+- [x] Verificar múltiplos biomarcadores, referências, exportações e erros de leitura.
+- [x] Conectar status, alertas, resolução e avaliação à API FastAPI preservando o visual.
+- [x] Adicionar métricas manuais com validação e verificar o fluxo real e os testes.
+- [x] Criar as jornadas do paciente e médico com dados em memória.
+- [x] Implementar consentimento, importações simuladas, explicações e exportação.
+- [x] Verificar as jornadas, testes e apresentação em computador e celular.
