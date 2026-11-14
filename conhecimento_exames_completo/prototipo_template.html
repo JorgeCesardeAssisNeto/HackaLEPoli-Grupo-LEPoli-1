@@ -1,0 +1,348 @@
+<title>Leitor de Exames Open Health</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&family=Fraunces:opsz,wght@9..144,600&display=swap">
+<style>
+/* Layout: bancada de laboratório — painel de entrada à esquerda, laudo interpretado à direita, régua de mensagens embaixo */
+:root{
+  --bg:#f3f5f6; --panel:#ffffff; --ink:#17232b; --muted:#5b6b75; --line:#d9e0e4; --accent:#0f6e7a; --accent-ink:#ffffff;
+  --l1:#2e9a5c; --l2:#e3c21b; --l3:#f6ad55; --l4:#e2600f; --l5:#c0121b; --na:#8a979f; --soft:#e9eef0;
+  --f-display:"Fraunces",Georgia,serif; --f-body:"IBM Plex Sans",system-ui,sans-serif; --f-mono:"IBM Plex Mono",ui-monospace,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#10171b; --panel:#172126; --ink:#e3eaee; --muted:#93a3ac; --line:#2a3840; --accent:#4fb3bf; --accent-ink:#0b1417;
+  --l1:#46b878; --l2:#e8cd3a; --l3:#f8b86a; --l4:#f0712a; --l5:#e5343c; --na:#6f7e86; --soft:#1e2b31; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#10171b; --panel:#172126; --ink:#e3eaee; --muted:#93a3ac; --line:#2a3840; --accent:#4fb3bf; --accent-ink:#0b1417;
+  --l1:#46b878; --l2:#e8cd3a; --l3:#f8b86a; --l4:#f0712a; --l5:#e5343c; --na:#6f7e86; --soft:#1e2b31; color-scheme:dark}
+.dist{display:grid;gap:14px;border:1px solid var(--line);border-radius:10px;padding:16px;background:var(--soft)}
+.dist h3{margin:0;font-family:var(--f-display);font-weight:600;font-size:17px}
+.dhead{display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px;align-items:baseline}
+.drow{display:grid;grid-template-columns:minmax(0,150px) minmax(0,1fr) 84px;gap:14px;align-items:center}
+@media (max-width:620px){.drow{grid-template-columns:minmax(0,1fr) 70px}.drow .sbarw{grid-column:1/-1;grid-row:2}}
+.dname{font-size:14px;font-weight:600;line-height:1.25}
+.dname small{display:block;color:var(--muted);font-size:11.5px;font-weight:400}
+.big{text-align:right;font-family:var(--f-mono);line-height:1}
+.big b{display:block;font-size:26px;font-weight:500;color:var(--l1)}
+.big small{font-size:10.5px;color:var(--muted);letter-spacing:.04em;text-transform:uppercase}
+.sbarw{position:relative;padding-top:18px;min-width:0}
+.sbar{position:relative;display:flex;height:34px;border-radius:7px;overflow:hidden;background:var(--panel);border:1px solid var(--line)}
+.sbar span{height:100%;display:flex;align-items:center;justify-content:center;font-family:var(--f-mono);font-size:12px;font-weight:500;color:#111;overflow:hidden;white-space:nowrap;border-right:1px solid color-mix(in srgb,var(--panel) 60%,transparent)}
+.sbar span.l5,.sbar span.l4{color:#fff}
+.sbar.vazio{justify-content:center;align-items:center;font-size:12.5px;color:var(--muted);border-style:dashed;background:transparent}
+.you{position:absolute;top:0;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;pointer-events:none}
+.you em{font-style:normal;font-size:10.5px;font-weight:600;background:var(--ink);color:var(--panel);border-radius:4px;padding:1px 5px;white-space:nowrap}
+.you i{width:2px;height:40px;background:var(--ink)}
+.axis{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-top:4px}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12px;color:var(--muted)}
+.legend i{display:inline-block;width:11px;height:11px;border-radius:2px;margin-right:5px;vertical-align:-1px}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.5;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:24px 48px}
+.wrap{max-width:1180px;margin:0 auto;display:grid;gap:20px}
+header{display:flex;flex-wrap:wrap;align-items:end;justify-content:space-between;gap:12px;border-bottom:1px solid var(--line);padding-bottom:14px}
+h1{font-family:var(--f-display);font-weight:600;font-size:clamp(24px,3.4vw,34px);margin:0;letter-spacing:-.01em;text-wrap:balance}
+.sub{color:var(--muted);margin:2px 0 0;max-width:62ch}
+.warn{font-size:12.5px;color:var(--muted);border:1px dashed var(--line);border-radius:6px;padding:8px 10px;max-width:44ch}
+.warn b{color:var(--ink)}
+.grid{display:grid;grid-template-columns:minmax(0,340px) minmax(0,1fr);gap:20px;align-items:start}
+@media (max-width:860px){.grid{grid-template-columns:minmax(0,1fr)}}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:18px;min-width:0}
+.lbl{display:block;font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:5px;font-weight:600}
+.field{display:grid;gap:4px}
+form{display:grid;gap:14px}
+input,select{width:100%;font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:8px 10px}
+input:focus-visible,select:focus-visible,button:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.num{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.hint{font-size:12.5px;color:var(--muted)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{font-size:12px;border:1px solid var(--line);border-radius:999px;padding:2px 9px;background:var(--soft);color:var(--muted)}
+.chip.st-pend{border-color:var(--l3);color:var(--l3)}
+.chip.st-ok{border-color:var(--l1);color:var(--l1)}
+details{border-top:1px solid var(--line);padding-top:10px}
+summary{cursor:pointer;font-weight:600;font-size:13.5px}
+.bands{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
+.examples{display:flex;flex-wrap:wrap;gap:6px}
+.examples button{font:inherit;font-size:12.5px;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:6px;padding:4px 8px;cursor:pointer}
+.examples button:hover{border-color:var(--accent)}
+/* resultado */
+.result{display:grid;gap:16px}
+.verdict{display:flex;flex-wrap:wrap;gap:16px;align-items:center}
+.badge{display:flex;align-items:center;gap:12px;padding:10px 14px;border-radius:8px;border:1px solid var(--lv,var(--na));background:color-mix(in srgb,var(--lv,var(--na)) 12%,var(--panel))}
+.badge .n{font-family:var(--f-mono);font-size:26px;font-weight:500;color:var(--lv,var(--na));line-height:1}
+.badge .t{font-weight:600}
+.badge .s{font-size:12.5px;color:var(--muted)}
+.meta{display:grid;gap:2px;font-size:13px;color:var(--muted)}
+.meta b{color:var(--ink);font-weight:500}
+.ruler{position:relative;height:58px;margin-top:4px}
+.ruler svg{width:100%;height:58px;display:block;overflow:visible}
+.six{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+@media (max-width:620px){.six{grid-template-columns:minmax(0,1fr)}}
+.six article{border:1px solid var(--line);border-radius:8px;padding:12px 14px;min-width:0}
+.six h3{margin:0 0 4px;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.six p{margin:0}
+.six .empty{color:var(--muted);font-style:italic}
+h2{font-family:var(--f-display);font-weight:600;font-size:20px;margin:0 0 4px}
+.scroll{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:13.5px}
+th,td{text-align:left;vertical-align:top;padding:9px 10px;border-bottom:1px solid var(--line)}
+th{font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600}
+tr.on td{background:color-mix(in srgb,var(--accent) 10%,transparent)}
+tr.on td:first-child{box-shadow:inset 3px 0 0 var(--accent)}
+.dot{display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--lv,var(--na));margin-right:6px;vertical-align:baseline}
+.rng{font-family:var(--f-mono);font-size:12.5px;white-space:nowrap}
+.st{font-size:12px;color:var(--muted)}
+.two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}
+@media (max-width:860px){.two{grid-template-columns:minmax(0,1fr)}}
+ul.k{margin:0;padding-left:18px;display:grid;gap:6px;font-size:13.5px}
+.foot{font-size:12.5px;color:var(--muted)}
+@media (prefers-reduced-motion:no-preference){.badge,.ruler circle{transition:all .2s ease}}
+</style>
+
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Leitor de Exames Open Health</h1>
+      <p class="sub">Protótipo: escolha um exame, informe o valor e o intervalo do laudo. A tela mostra o nível, os seis textos daquele nível e todas as mensagens possíveis do exame conforme o desvio.</p>
+    </div>
+    <p class="warn"><b>Protótipo para teste.</b> Textos sem revisão clínica. As faixas de desvio dos níveis 2–5 são provisórias e ajustáveis. Não é diagnóstico.</p>
+  </header>
+
+  <div class="grid">
+    <section class="panel" aria-label="Entrada">
+      <form id="f" autocomplete="off">
+        <div class="field">
+          <label class="lbl" for="busca">Exame</label>
+          <input id="busca" type="search" placeholder="Filtrar por nome…">
+          <select id="exame" size="1" aria-label="Exame"></select>
+        </div>
+        <div class="field" id="campoValor">
+          <label class="lbl" for="valor">Resultado <span id="un" class="num"></span></label>
+          <input id="valor" class="num" type="number" step="any" inputmode="decimal">
+        </div>
+        <div class="field" id="campoQual" hidden>
+          <label class="lbl" for="qual">Resultado</label>
+          <select id="qual"><option value="nao_reagente">Não reagente / negativo</option><option value="reagente">Reagente / positivo</option></select>
+        </div>
+        <div class="field" id="campoFaixa">
+          <span class="lbl">Intervalo de referência do laudo</span>
+          <div class="row2">
+            <input id="min" class="num" type="number" step="any" placeholder="mínimo" aria-label="Mínimo">
+            <input id="max" class="num" type="number" step="any" placeholder="máximo" aria-label="Máximo">
+          </div>
+          <span class="hint" id="faixaHint"></span>
+        </div>
+        <div class="field">
+          <label class="lbl" for="sexo">Sexo (para comparação com pares)</label>
+          <select id="sexo"><option value="feminino">Feminino</option><option value="masculino">Masculino</option></select>
+        </div>
+        <div class="field">
+          <span class="lbl">Testar rápido</span>
+          <div class="examples" id="ex"></div>
+        </div>
+        <details>
+          <summary>Faixas de desvio do protótipo</summary>
+          <p class="hint">Desvio = distância até a borda ÷ largura do intervalo. Valores provisórios para teste, sem validação clínica.</p>
+          <div class="bands">
+            <label class="field"><span class="lbl">Nível 2 até</span><input id="b2" class="num" type="number" step="1" value="10"></label>
+            <label class="field"><span class="lbl">Nível 3 até</span><input id="b3" class="num" type="number" step="1" value="25"></label>
+            <label class="field"><span class="lbl">Nível 4 até</span><input id="b4" class="num" type="number" step="1" value="50"></label>
+          </div>
+          <p class="hint">Acima de nível 4 → nível 5. Valores em %.</p>
+        </details>
+      </form>
+    </section>
+
+    <section class="panel result" aria-live="polite">
+      <div>
+        <h2 id="nome"></h2>
+        <p class="hint" id="resumo"></p>
+        <div class="chips" id="chips"></div>
+      </div>
+      <div class="verdict">
+        <div class="badge" id="badge"><span class="n" id="bn">–</span><div><div class="t" id="bt"></div><div class="s" id="bs"></div></div></div>
+        <div class="meta" id="meta"></div>
+      </div>
+      <div class="ruler" id="ruler"></div>
+      <div class="dist" id="dist"></div>
+      <div class="six" id="six"></div>
+    </section>
+  </div>
+
+  <section class="panel">
+    <h2>Régua de mensagens deste exame</h2>
+    <p class="hint">Todas as respostas possíveis, do nível 1 ao 5, para cada direção. A linha destacada é a do resultado atual.</p>
+    <div class="scroll"><table><thead><tr><th>Nível</th><th>Direção</th><th>Faixa de valores</th><th>Mensagem</th><th>Próximo passo</th><th>Status</th></tr></thead><tbody id="regua"></tbody></table></div>
+  </section>
+
+  <div hidden id="pares"></div>
+  <section class="panel"><h2>Critérios de fontes externas</h2><div id="crit"></div></section>
+  <p class="foot">Fonte dos textos: conhecimento_exames_csv (rascunho sem revisão clínica). Pares: NHANES, EUA; não representa a população brasileira. Intervalos padrão vêm de database.py do projeto e devem ser substituídos pelo intervalo impresso no laudo.</p>
+</div>
+
+<script>
+const D = __DATA__;
+const S = D.s, E = D.e;
+const NOMES = {1:"Normal",2:"Levemente alterado",3:"Nível de atenção",4:"Alterado de maneira moderada",5:"Alterado grave"};
+const COR = n => n ? `var(--l${n})` : "var(--na)";
+const $ = id => document.getElementById(id);
+const fmt = (x, d=2) => (x==null||isNaN(x)) ? "–" : (+x).toLocaleString("pt-BR",{maximumFractionDigits:d});
+const ST = {conteudo_disponivel:["conteúdo disponível","st-ok"],pendente_validacao:["pendente de validação","st-pend"],nao_aplicavel:["não aplicável",""],evidencia_insuficiente:["evidência insuficiente","st-pend"]};
+const ids = Object.keys(E).sort((a,b)=>E[a].c.localeCompare(E[b].c)||E[a].n.localeCompare(E[b].n));
+
+function fillSelect(q=""){
+  const sel=$("exame"), cur=sel.value; sel.innerHTML=""; let grp=null, last="";
+  const qq=q.trim().toLowerCase();
+  ids.filter(id=>!qq||E[id].n.toLowerCase().includes(qq)||id.includes(qq)).forEach(id=>{
+    if(E[id].c!==last){grp=document.createElement("optgroup");grp.label=E[id].c;sel.appendChild(grp);last=E[id].c}
+    const o=document.createElement("option");o.value=id;o.textContent=E[id].n+(E[id].ir?"":" ·");grp.appendChild(o);
+  });
+  if([...sel.options].some(o=>o.value===cur)) sel.value=cur;
+}
+const bands=()=>[+$("b2").value/100,+$("b3").value/100,+$("b4").value/100];
+function nivelPorDesvio(dev){const [b2,b3,b4]=bands(); return dev<=b2?2:dev<=b3?3:dev<=b4?4:5}
+function codigoAtual(v,a,b){const w=b-a;if(v<a||v>b){const d=(v<a?a-v:v-b)/w;return d<=.15?"ALTERADO_LEVE":d<=.5?"ALTERADO_MODERADO":"ALTERACAO_ACENTUADA"}const p=(v-a)/w;return (p<.1||p>.9)?"LIMITROFE":"NORMAL"}
+function linha(e,niv,dir){return e.i.find(r=>r[0]===String(niv||"")&&r[1]===dir)}
+
+function faixaTexto(niv,dir,a,b){
+  if(a==null||b==null||isNaN(a)||isNaN(b)||b<=a) return "–";
+  const w=b-a,[b2,b3,b4]=bands(), u=E[$("exame").value].u||"";
+  if(niv===1) return `${fmt(a,3)} a ${fmt(b,3)} ${u}`;
+  const lim=[0,b2,b3,b4,Infinity], lo=lim[niv-2], hi=lim[niv-1];
+  if(dir==="abaixo"){const x1=a-hi*w,x2=a-lo*w; return (hi===Infinity?`< ${fmt(x2,3)}`:`${fmt(Math.max(x1,0),3)} a ${fmt(x2,3)}`)+` ${u}`}
+  const y1=b+lo*w,y2=b+hi*w; return (hi===Infinity?`> ${fmt(y1,3)}`:`${fmt(y1,3)} a ${fmt(y2,3)}`)+` ${u}`;
+}
+
+function carregarExame(){
+  const id=$("exame").value, e=E[id]; if(!e) return;
+  const qual=e.t.startsWith("qualitativo")||e.t==="pendente_validacao";
+  $("campoValor").hidden=qual; $("campoFaixa").hidden=qual; $("campoQual").hidden=!qual;
+  $("un").textContent=e.u?`(${e.u})`:"";
+  if(e.ir){$("min").value=e.ir[0];$("max").value=e.ir[1];$("faixaHint").textContent=`Preenchido com o padrão do projeto (${e.ir[0]}–${e.ir[1]} ${e.ir[2]}). Troque pelo intervalo do seu laudo.`+(e.ir[2]!==e.u&&e.u?` Atenção: faixa em ${e.ir[2]}, coluna em ${e.u}.`:"")}
+  else{$("min").value="";$("max").value="";$("faixaHint").textContent="O projeto não tem intervalo para este exame. Digite o do laudo."}
+  if(!qual && $("valor").dataset.for!==id){ $("valor").value = e.ir ? +(e.ir[1]+(e.ir[1]-e.ir[0])*0.2).toFixed(3) : ""; $("valor").dataset.for=id }
+  render();
+}
+
+function render(){
+  const id=$("exame").value, e=E[id]; if(!e) return;
+  const qual=!$("campoQual").hidden;
+  $("dist").innerHTML="";
+  $("nome").textContent=e.n; $("resumo").textContent=e.r;
+  const chips=[`<span class="chip">${e.c}</span>`,`<span class="chip">${e.t.replace(/_/g," ")}</span>`];
+  if(e.sx==="sim") chips.push(`<span class="chip st-pend">depende do sexo</span>`);
+  if(e.d==="contexto") chips.push(`<span class="chip st-pend">depende de contexto hormonal/gestação</span>`);
+  if(e.obs) chips.push(`<span class="chip st-pend" title="${e.obs.replace(/"/g,"&quot;")}">inconsistência na base</span>`);
+  $("chips").innerHTML=chips.join("");
+
+  let niv=null, dir=null, info="", ativo=null, a=+$("min").value, b=+$("max").value;
+  const temFaixa=$("min").value!==""&&$("max").value!==""&&b>a;
+  if(qual){ dir=$("qual").value; niv = dir==="nao_reagente"?1:null; ativo=linha(e,niv,dir)||e.i.find(r=>r[1]===dir)||e.i.find(r=>r[1]==="abaixo_limiar");
+    info = dir==="reagente"?"Resultado qualitativo: não é graduado em cinco níveis.":"";
+  } else {
+    const v=+$("valor").value;
+    if($("valor").value===""){ $("bn").textContent="–"; $("bt").textContent="Informe o resultado"; $("bs").textContent=""; $("meta").innerHTML=""; $("six").innerHTML=""; $("ruler").innerHTML=""; regua(e,null,a,b,temFaixa); pares(e,null); crit(e); return }
+    if(!temFaixa){ $("bn").textContent="0"; $("badge").style.setProperty("--lv","var(--na)"); $("bt").textContent="Indeterminado"; $("bs").textContent="Sem intervalo de referência, não há classificação. Não é tratado como normal."; $("meta").innerHTML=""; $("six").innerHTML=""; $("ruler").innerHTML=""; regua(e,null,a,b,false); pares(e,null); crit(e); return }
+    const w=b-a;
+    if(v<a){dir="abaixo"}else if(v>b){dir="acima"}else{dir="dentro_referencia"}
+    const dev = dir==="abaixo"?(a-v)/w : dir==="acima"?(v-b)/w : 0;
+    niv = dir==="dentro_referencia"?1:nivelPorDesvio(dev);
+    ativo = linha(e,niv,dir);
+    const pos=(v-a)/w;
+    $("meta").innerHTML=`<span>Valor <b class="num">${fmt(v,3)} ${e.u}</b> · intervalo <b class="num">${fmt(a,3)}–${fmt(b,3)}</b></span>
+      <span>${dir==="dentro_referencia"?`Posição no intervalo: <b class="num">${fmt(pos*100,1)}%</b>${pos<.1||pos>.9?" (perto da borda)":""}`:`Desvio além da borda: <b class="num">${fmt(dev*100,1)}%</b> da largura`}</span>
+      <span>Classificador atual do projeto: <b class="num">${codigoAtual(v,a,b)}</b></span>`;
+    rulerSVG(v,a,b);
+  }
+  const st = ativo?ativo[2]:"evidencia_insuficiente";
+  $("badge").style.setProperty("--lv", st==="nao_aplicavel"?"var(--na)":COR(niv));
+  const semGrad = st==="nao_aplicavel";
+  $("bn").textContent = semGrad?"–":(niv??"–");
+  $("bt").textContent = semGrad?"Sem graduação nesta direção":niv?NOMES[niv]:(dir==="reagente"?"Reagente":"Fora da escala");
+  $("bs").textContent = (dir==="abaixo"?"abaixo do intervalo · ":dir==="acima"?"acima do intervalo · ":"") + (ST[st]||[st])[0] + (info?" · "+info:"");
+  if(qual){$("meta").innerHTML="";$("ruler").innerHTML=""}
+  const t = k => ativo ? S[ativo[k]] : "";
+  const box=(h,txt)=>`<article><h3>${h}</h3>${txt?`<p>${txt}</p>`:`<p class="empty">${st==="nao_aplicavel"?"Não se aplica a esta direção.":"Sem conteúdo nesta base."}</p>`}</article>`;
+  $("six").innerHTML = box("O que o exame mede",e.r)+box("O que este resultado significa",t(3))+box("Possíveis impactos",t(5))+box("Possíveis causas",t(6))+`<div style="grid-column:1/-1">${box("Próximos passos",t(7))}</div>`;
+  regua(e,ativo,a,b,temFaixa); pares(e,$("sexo").value); crit(e);
+  distribuicao(e, qual?null:+$("valor").value, a, b, !qual&&temFaixa);
+}
+
+function rulerSVG(v,a,b){
+  const w=b-a,[b2,b3,b4]=bands(), lo=a-(b4*1.4)*w, hi=b+(b4*1.4)*w, X=x=>8+(Math.min(Math.max(x,lo),hi)-lo)/(hi-lo)*984;
+  const seg=(x1,x2,n)=>`<rect x="${X(x1)}" y="18" width="${Math.max(X(x2)-X(x1),0)}" height="12" fill="${COR(n)}" opacity=".85"/>`;
+  const s=[seg(lo,a-b4*w,5),seg(a-b4*w,a-b3*w,4),seg(a-b3*w,a-b2*w,3),seg(a-b2*w,a,2),seg(a,b,1),seg(b,b+b2*w,2),seg(b+b2*w,b+b3*w,3),seg(b+b3*w,b+b4*w,4),seg(b+b4*w,hi,5)].join("");
+  $("ruler").innerHTML=`<svg viewBox="0 0 1000 58" preserveAspectRatio="none" role="img" aria-label="Posição do valor na régua de níveis">${s}
+   <line x1="${X(a)}" x2="${X(a)}" y1="12" y2="36" stroke="var(--ink)" stroke-width="1.5"/><line x1="${X(b)}" x2="${X(b)}" y1="12" y2="36" stroke="var(--ink)" stroke-width="1.5"/>
+   <circle cx="${X(v)}" cy="24" r="9" fill="var(--panel)" stroke="var(--ink)" stroke-width="3"/></svg>
+   <div style="display:flex;justify-content:space-between;font-family:var(--f-mono);font-size:12px;color:var(--muted);margin-top:-12px"><span>nível 5</span><span>mín ${fmt(a,3)}</span><span>nível 1</span><span>máx ${fmt(b,3)}</span><span>nível 5</span></div>`;
+}
+
+// Fração da população abaixo de x, a partir dos 101 percentis ponderados
+function cdf(q,x){ if(x<=q[0]) return 0; if(x>=q[100]) return 1;
+  let i=0; while(i<100 && q[i+1]<x) i++; const lo=q[i],hi=q[i+1]; return (i+(hi>lo?(x-lo)/(hi-lo):0))/100 }
+const ORD=[["a",5],["a",4],["a",3],["a",2],["d",1],["c",2],["c",3],["c",4],["c",5]];
+function barra(fr,marc){
+  const segs=ORD.map(([s,n],k)=>{const p=fr[k]*100; if(p<=0.05) return "";
+    const t=p>=6?`${p.toFixed(p<10?1:0)}%`:""; const tip=`Nível ${n}${s==="a"?" (abaixo)":s==="c"?" (acima)":""}: ${p.toFixed(1)}%`;
+    return `<span class="l${n}" style="width:${p}%;background:var(--l${n})" title="${tip}">${t}</span>`}).join("");
+  const tx = marc==null?0:marc<.08?0:marc>.92?-100:-50;
+  const mk = marc==null?"":`<div class="you" style="left:${(marc*100).toFixed(2)}%;transform:translateX(${tx}%);align-items:${tx===0?"flex-start":tx===-100?"flex-end":"center"}"><em>você · P${Math.round(marc*100)}</em><i></i></div>`;
+  return `<div class="sbarw"><div class="sbar" role="img" aria-label="${ORD.map(([s,n],k)=>`nível ${n} ${(fr[k]*100).toFixed(1)}%`).join(", ")}">${segs}</div>${mk}<div class="axis"><span>← valores baixos</span><span>valores altos →</span></div></div>`;
+}
+const grande=(p,txt)=>`<div class="big"><b>${p==null?"–":Math.round(p)+"%"}</b><small>${txt}</small></div>`;
+function distribuicao(e,v,a,b,temFaixa){
+  const leg=`<div class="legend">${[1,2,3,4,5].map(n=>`<span><i style="background:var(--l${n})"></i>${n} · ${NOMES[n]}</span>`).join("")}</div>`;
+  if(!temFaixa){ $("dist").innerHTML=""; return }
+  const w=b-a,[b2,b3,b4]=bands();
+  const cortes=[a-b4*w,a-b3*w,a-b2*w,a,b,b+b2*w,b+b3*w,b+b4*w];
+  // Ideal: definição de intervalo de referência (95% central da população de referência saudável)
+  const ideal=[0,0,0,0.025,0.95,0.025,0,0,0];
+  let pop="", marc=null, sexo=$("sexo").value, q=e.q&&e.q[sexo];
+  if(q){
+    const c=cortes.map(x=>cdf(q,x)); const fr=[c[0],c[1]-c[0],c[2]-c[1],c[3]-c[2],c[4]-c[3],c[5]-c[4],c[6]-c[5],c[7]-c[6],1-c[7]].map(x=>Math.max(0,x));
+    if(v!=null&&!isNaN(v)) marc=cdf(q,v);
+    pop=`<div class="drow"><div class="dname">Mundial<small>EUA · NHANES · ${sexo} · n=${(e.p.find(p=>p[0]===sexo)||[])[4]||"–"}</small></div>${barra(fr,marc)}${grande(fr[4]*100,"no verde")}</div>`;
+  } else {
+    pop=`<div class="drow"><div class="dname">Mundial<small>EUA · NHANES</small></div><div class="sbarw"><div class="sbar vazio">Sem dados deste exame</div></div>${grande(null,"no verde")}</div>`;
+  }
+  const br=`<div class="drow"><div class="dname">Brasil<small>18–25 anos</small></div><div class="sbarw"><div class="sbar vazio">Sem base brasileira no projeto</div></div>${grande(null,"no verde")}</div>`;
+  $("dist").innerHTML=`<div class="dhead"><h3>Você e as pessoas de 18 a 25 anos</h3>${leg}</div>
+    <div class="drow"><div class="dname">Ideal<small>intervalo de referência</small></div>${barra(ideal,null)}${grande(95,"no verde")}</div>
+    ${pop}${br}
+    <p class="hint">Cada barra mostra quanto da população cai em cada nível, com o intervalo e os cortes desta tela. NHANES é dos EUA e não representa o Brasil.</p>`;
+}
+
+function regua(e,ativo,a,b,temFaixa){
+  const ordem={"1":0,"2":1,"3":2,"4":3,"5":4,"":5}, dirOrd={dentro_referencia:0,nao_reagente:0,abaixo:1,acima:2,reagente:3,abaixo_limiar:3,nao_aplicavel:4};
+  const rows=[...e.i].sort((x,y)=>(dirOrd[x[1]]-dirOrd[y[1]])||(ordem[x[0]]-ordem[y[0]]));
+  $("regua").innerHTML=rows.map(r=>{
+    const n=r[0]?+r[0]:null, on=ativo===r, na=r[2]==="nao_aplicavel";
+    const dirTxt={dentro_referencia:"dentro",abaixo:"abaixo",acima:"acima",nao_reagente:"não reagente",reagente:"reagente",abaixo_limiar:"abaixo do limiar",nao_aplicavel:"—"}[r[1]]||r[1];
+    const fx = (temFaixa&&["dentro_referencia","abaixo","acima"].includes(r[1])&&!na)?faixaTexto(n,r[1]==="dentro_referencia"?"":r[1],a,b):"–";
+    return `<tr class="${on?"on":""}"><td style="--lv:${na?"var(--na)":COR(n)}"><span class="dot"></span>${n?`${n} · ${NOMES[n]}`:"fora da escala"}</td><td>${dirTxt}</td><td class="rng">${fx}</td><td>${S[r[3]]||'<span class="st">sem texto</span>'}</td><td>${S[r[7]]||"–"}</td><td class="st">${(ST[r[2]]||[r[2]])[0]}</td></tr>`;
+  }).join("");
+}
+
+function pares(e,sexo){
+  if(!e.p.length){$("pares").innerHTML='<p class="hint">Não há estimativa validada disponível nesta base para este exame e recorte etário.</p>';return}
+  $("pares").innerHTML=`<div class="scroll"><table><thead><tr><th>Sexo</th><th>Mediana</th><th>P2,5–P97,5</th><th>n</th><th>Fora da faixa do projeto</th></tr></thead><tbody>${
+    e.p.map(p=>`<tr class="${p[0]===sexo?"on":""}"><td>${p[0]}</td><td class="num">${fmt(+p[2])} ${p[5]}</td><td class="num">${fmt(+p[1])}–${fmt(+p[3])}</td><td class="num">${p[4]}</td><td class="num">${p[7]!==""?`${p[7]}% abaixo · ${p[8]}% acima`:"não calculado"}</td></tr>`).join("")
+  }</tbody></table></div><p class="hint">NHANES ${e.p[0][6]}, EUA, não gestantes, estimativa ponderada. Não representa a população brasileira; percentis não são intervalo clínico.</p>`;
+}
+function crit(e){
+  $("crit").innerHTML = e.k.length ? `<ul class="k">${e.k.map(k=>`<li><b>${k[0]==="grau_evento_adverso_ctcae"?"CTCAE v5.0":"ADA 2025"}</b> — ${k[1]}<br><span class="st">${k[2]}</span></li>`).join("")}</ul><p class="hint">Transcritos sem conferência no documento oficial. Não definem o nível do produto.</p>`
+    : '<p class="hint">Nenhum critério externo registrado para este exame. Valores críticos dependem da política do laboratório e não foram definidos.</p>';
+}
+
+const EX=[["hemoglobina_g_dL",10.5,"Hemoglobina 10,5"],["ferritina_ng_mL",8,"Ferritina 8"],["ferritina_ng_mL",420,"Ferritina 420"],["glicose_jejum_mg_dL",112,"Glicose 112"],["potassio_mEq_L",6.4,"Potássio 6,4"],["tsh_uIU_mL",2.1,"TSH 2,1"],["hiv_1_2",null,"HIV reagente"]];
+$("ex").innerHTML=EX.map((x,i)=>`<button type="button" data-i="${i}">${x[2]}</button>`).join("");
+$("ex").addEventListener("click",ev=>{const i=ev.target.dataset.i;if(i==null)return;const [id,v]=EX[i];$("busca").value="";fillSelect();$("exame").value=id;carregarExame();if(v==null){$("qual").value="reagente"}else{$("valor").value=v;$("valor").dataset.for=id}render()});
+$("busca").addEventListener("input",()=>{fillSelect($("busca").value);carregarExame()});
+$("exame").addEventListener("change",carregarExame);
+["valor","min","max","qual","sexo","b2","b3","b4"].forEach(k=>$(k).addEventListener("input",render));
+$("f").addEventListener("submit",ev=>ev.preventDefault());
+fillSelect(); $("exame").value="hemoglobina_g_dL"; carregarExame(); $("valor").value=10.5; $("valor").dataset.for="hemoglobina_g_dL"; render();
+</script>
