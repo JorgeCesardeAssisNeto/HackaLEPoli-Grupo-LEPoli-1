@@ -1,0 +1,107 @@
+[
+  {
+    "coluna": "ttpa_seg",
+    "loinc": "3173-2",
+    "categoria": "9. MARCADORES TUMORAIS"
+  },
+  {
+    "coluna": "fator_reumatoide_IU_mL",
+    "loinc": "11572-5",
+    "categoria": "9. MARCADORES TUMORAIS"
+  },
+  {
+    "coluna": "fan_fator_antinuclear",
+    "loinc": "8061-4",
+    "categoria": "9. MARCADORES TUMORAIS"
+  },
+  {
+    "coluna": "alfa_fetoproteina_afp_ng_mL",
+    "loinc": "1834-1",
+    "categoria": "10. MARCADORES CARDÍACOS E MUSCULARES"
+  },
+  {
+    "coluna": "cea_ng_mL",
+    "loinc": "2039-6",
+    "categoria": "10. MARCADORES CARDÍACOS E MUSCULARES"
+  },
+  {
+    "coluna": "psa_total_ng_mL",
+    "loinc": "2857-1",
+    "categoria": "10. MARCADORES CARDÍACOS E MUSCULARES"
+  },
+  {
+    "coluna": "psa_livre_ng_mL",
+    "loinc": "10886-0",
+    "categoria": "10. MARCADORES CARDÍACOS E MUSCULARES"
+  },
+  {
+    "coluna": "ca_125_U_mL",
+    "loinc": "10334-1",
+    "categoria": "10. MARCADORES CARDÍACOS E MUSCULARES"
+  },
+  {
+    "coluna": "ca_19_9_U_mL",
+    "loinc": "24108-3",
+    "categoria": "10. MARCADORES CARDÍACOS E MUSCULARES"
+  },
+  {
+    "coluna": "ca_15_3_U_mL",
+    "loinc": "6875-9",
+    "categoria": "10. MARCADORES CARDÍACOS E MUSCULARES"
+  },
+  {
+    "coluna": "beta_hcg_quantitativo_mIU_mL",
+    "loinc": "21198-7",
+    "categoria": "10. MARCADORES CARDÍACOS E MUSCULARES"
+  },
+  {
+    "coluna": "ck_total_creatinofosfoquinase_U_L",
+    "loinc": "2157-6",
+    "categoria": "10. MARCADORES CARDÍACOS E MUSCULARES"
+  },
+  {
+    "coluna": "ck_mb_ng_mL",
+    "loinc": "13969-1",
+    "categoria": "10. MARCADORES CARDÍACOS E MUSCULARES"
+  },
+  {
+    "coluna": "troponina_i_alta_sensibilidade_ng_L",
+    "loinc": "89579-7",
+    "categoria": "10. MARCADORES CARDÍACOS E MUSCULARES"
+  },
+  {
+    "coluna": "bnp_pg_mL",
+    "loinc": "30934-4",
+    "categoria": "10. MARCADORES CARDÍACOS E MUSCULARES"
+  },
+  {
+    "coluna": "nt_probnp_pg_mL",
+    "loinc": "33762-6",
+    "categoria": "10. MARCADORES CARDÍACOS E MUSCULARES"
+  },
+  {
+    "coluna": "hiv_1_2",
+    "loinc": "75622-1",
+    "categoria": "10. MARCADORES CARDÍACOS E MUSCULARES"
+  },
+  {
+    "coluna": "hbsag_hepatite_b",
+    "loinc": "5195-3",
+    "categoria": "10. MARCADORES CARDÍACOS E MUSCULARES"
+  },
+  {
+    "coluna": "anti_hbs_hepatite_b",
+    "loinc": "16935-9",
+    "categoria": "10. MARCADORES CARDÍACOS E MUSCULARES"
+  },
+  {
+    "coluna": "anti_hcv_hepatite_c",
+    "loinc": "16128-1",
+    "categoria": "10. MARCADORES CARDÍACOS E MUSCULARES"
+  },
+  {
+    "coluna": "vdrl_sifilis",
+    "loinc": "5292-88081.0150.7702 / CIP 6164788886",
+    "categoria": "10. MARCADORES CARDÍACOS E MUSCULARES"
+  }
+]

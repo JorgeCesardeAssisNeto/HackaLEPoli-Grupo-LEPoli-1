@@ -1,0 +1,117 @@
+[
+  {
+    "coluna": "fsh_mIU_mL",
+    "loinc": "15067-2",
+    "categoria": "6. TIREOIDE E HORMÔNIOS"
+  },
+  {
+    "coluna": "lh_mIU_mL",
+    "loinc": "10501-5",
+    "categoria": "6. TIREOIDE E HORMÔNIOS"
+  },
+  {
+    "coluna": "prolactina_ng_mL",
+    "loinc": "2842-3",
+    "categoria": "6. TIREOIDE E HORMÔNIOS"
+  },
+  {
+    "coluna": "shbg_nmol_L",
+    "loinc": "13967-5",
+    "categoria": "6. TIREOIDE E HORMÔNIOS"
+  },
+  {
+    "coluna": "dhea_s_ug_dL",
+    "loinc": "2191-5",
+    "categoria": "6. TIREOIDE E HORMÔNIOS"
+  },
+  {
+    "coluna": "pth_paratormonio_pg_mL",
+    "loinc": "2731-8",
+    "categoria": "6. TIREOIDE E HORMÔNIOS"
+  },
+  {
+    "coluna": "igf1_ng_mL",
+    "loinc": "2484-4",
+    "categoria": "6. TIREOIDE E HORMÔNIOS"
+  },
+  {
+    "coluna": "ferritina_ng_mL",
+    "loinc": "2276-4",
+    "categoria": "8. INFLAMAÇÃO, AUTOIMUNIDADE E COAGULAÇÃO"
+  },
+  {
+    "coluna": "ferro_serico_ug_dL",
+    "loinc": "2498-4",
+    "categoria": "8. INFLAMAÇÃO, AUTOIMUNIDADE E COAGULAÇÃO"
+  },
+  {
+    "coluna": "transferrina_mg_dL",
+    "loinc": "3034-6",
+    "categoria": "8. INFLAMAÇÃO, AUTOIMUNIDADE E COAGULAÇÃO"
+  },
+  {
+    "coluna": "tibc_ug_dL",
+    "loinc": "2500-7",
+    "categoria": "8. INFLAMAÇÃO, AUTOIMUNIDADE E COAGULAÇÃO"
+  },
+  {
+    "coluna": "saturacao_transferrina_pct",
+    "loinc": "2502-3",
+    "categoria": "8. INFLAMAÇÃO, AUTOIMUNIDADE E COAGULAÇÃO"
+  },
+  {
+    "coluna": "vitamina_d_25oh_ng_mL",
+    "loinc": "1989-3",
+    "categoria": "8. INFLAMAÇÃO, AUTOIMUNIDADE E COAGULAÇÃO"
+  },
+  {
+    "coluna": "vitamina_b12_pg_mL",
+    "loinc": "2132-9",
+    "categoria": "8. INFLAMAÇÃO, AUTOIMUNIDADE E COAGULAÇÃO"
+  },
+  {
+    "coluna": "acido_folico_folato_ng_mL",
+    "loinc": "2284-8",
+    "categoria": "8. INFLAMAÇÃO, AUTOIMUNIDADE E COAGULAÇÃO"
+  },
+  {
+    "coluna": "homocisteina_umol_L",
+    "loinc": "13965-9",
+    "categoria": "8. INFLAMAÇÃO, AUTOIMUNIDADE E COAGULAÇÃO"
+  },
+  {
+    "coluna": "zinco_ug_dL",
+    "loinc": "5763-8",
+    "categoria": "8. INFLAMAÇÃO, AUTOIMUNIDADE E COAGULAÇÃO"
+  },
+  {
+    "coluna": "pcr_ultrassensivel_mg_L",
+    "loinc": "30522-7",
+    "categoria": "9. MARCADORES TUMORAIS"
+  },
+  {
+    "coluna": "vhs_mm_h",
+    "loinc": "4537-7",
+    "categoria": "9. MARCADORES TUMORAIS"
+  },
+  {
+    "coluna": "fibrinogenio_mg_dL",
+    "loinc": "3255-7",
+    "categoria": "9. MARCADORES TUMORAIS"
+  },
+  {
+    "coluna": "d_dimero_ng_mL",
+    "loinc": "48065-7",
+    "categoria": "9. MARCADORES TUMORAIS"
+  },
+  {
+    "coluna": "tap_tempo_protrombina_seg",
+    "loinc": "5902-2",
+    "categoria": "9. MARCADORES TUMORAIS"
+  },
+  {
+    "coluna": "inr",
+    "loinc": "6301-6",
+    "categoria": "9. MARCADORES TUMORAIS"
+  }
+]

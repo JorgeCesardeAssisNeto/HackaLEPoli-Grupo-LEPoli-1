@@ -1,0 +1,117 @@
+[
+  {
+    "coluna": "tgo_ast_U_L",
+    "loinc": "1920-8",
+    "categoria": "5. FUNÇÃO HEPÁTICA E BILIAR"
+  },
+  {
+    "coluna": "tgp_alt_U_L",
+    "loinc": "1742-6",
+    "categoria": "5. FUNÇÃO HEPÁTICA E BILIAR"
+  },
+  {
+    "coluna": "gama_gt_ggt_U_L",
+    "loinc": "2324-2",
+    "categoria": "5. FUNÇÃO HEPÁTICA E BILIAR"
+  },
+  {
+    "coluna": "fosfatase_alcalina_U_L",
+    "loinc": "6768-6",
+    "categoria": "5. FUNÇÃO HEPÁTICA E BILIAR"
+  },
+  {
+    "coluna": "bilirrubina_total_mg_dL",
+    "loinc": "1975-2",
+    "categoria": "5. FUNÇÃO HEPÁTICA E BILIAR"
+  },
+  {
+    "coluna": "bilirrubina_direta_mg_dL",
+    "loinc": "1968-7",
+    "categoria": "5. FUNÇÃO HEPÁTICA E BILIAR"
+  },
+  {
+    "coluna": "bilirrubina_indireta_mg_dL",
+    "loinc": "1971-1",
+    "categoria": "5. FUNÇÃO HEPÁTICA E BILIAR"
+  },
+  {
+    "coluna": "proteinas_totais_g_dL",
+    "loinc": "2885-2",
+    "categoria": "5. FUNÇÃO HEPÁTICA E BILIAR"
+  },
+  {
+    "coluna": "albumina_g_dL",
+    "loinc": "1751-7",
+    "categoria": "5. FUNÇÃO HEPÁTICA E BILIAR"
+  },
+  {
+    "coluna": "globulinas_g_dL",
+    "loinc": "2336-6",
+    "categoria": "5. FUNÇÃO HEPÁTICA E BILIAR"
+  },
+  {
+    "coluna": "ldh_desidrogenase_lactica_U_L",
+    "loinc": "2532-0",
+    "categoria": "5. FUNÇÃO HEPÁTICA E BILIAR"
+  },
+  {
+    "coluna": "tsh_uIU_mL",
+    "loinc": "3016-3",
+    "categoria": "6. TIREOIDE E HORMÔNIOS"
+  },
+  {
+    "coluna": "t4_livre_ng_dL",
+    "loinc": "3024-7",
+    "categoria": "6. TIREOIDE E HORMÔNIOS"
+  },
+  {
+    "coluna": "t4_total_ug_dL",
+    "loinc": "3026-2",
+    "categoria": "6. TIREOIDE E HORMÔNIOS"
+  },
+  {
+    "coluna": "t3_livre_pg_mL",
+    "loinc": "3051-0",
+    "categoria": "6. TIREOIDE E HORMÔNIOS"
+  },
+  {
+    "coluna": "t3_total_ng_dL",
+    "loinc": "3053-6",
+    "categoria": "6. TIREOIDE E HORMÔNIOS"
+  },
+  {
+    "coluna": "anti_tpo_IU_mL",
+    "loinc": "8099-4",
+    "categoria": "6. TIREOIDE E HORMÔNIOS"
+  },
+  {
+    "coluna": "anti_tireoglobulina_IU_mL",
+    "loinc": "8098-6",
+    "categoria": "6. TIREOIDE E HORMÔNIOS"
+  },
+  {
+    "coluna": "cortisol_basal_ug_dL",
+    "loinc": "2143-6",
+    "categoria": "6. TIREOIDE E HORMÔNIOS"
+  },
+  {
+    "coluna": "testosterona_total_ng_dL",
+    "loinc": "2986-8",
+    "categoria": "6. TIREOIDE E HORMÔNIOS"
+  },
+  {
+    "coluna": "testosterona_livre_pg_mL",
+    "loinc": "2991-8",
+    "categoria": "6. TIREOIDE E HORMÔNIOS"
+  },
+  {
+    "coluna": "estradiol_pg_mL",
+    "loinc": "2243-4",
+    "categoria": "6. TIREOIDE E HORMÔNIOS"
+  },
+  {
+    "coluna": "progesterona_ng_mL",
+    "loinc": "2839-9",
+    "categoria": "6. TIREOIDE E HORMÔNIOS"
+  }
+]

@@ -1,0 +1,117 @@
+[
+  {
+    "coluna": "hemoglobina_glicada_hba1c_pct",
+    "loinc": "4548-4",
+    "categoria": "3. METABOLISMO DA GLICOSE E PERFIL LIPÍDICO"
+  },
+  {
+    "coluna": "insulina_basal_uIU_mL",
+    "loinc": "20448-7",
+    "categoria": "3. METABOLISMO DA GLICOSE E PERFIL LIPÍDICO"
+  },
+  {
+    "coluna": "indice_homa_ir",
+    "loinc": "72115-9",
+    "categoria": "3. METABOLISMO DA GLICOSE E PERFIL LIPÍDICO"
+  },
+  {
+    "coluna": "colesterol_total_mg_dL",
+    "loinc": "2093-3",
+    "categoria": "3. METABOLISMO DA GLICOSE E PERFIL LIPÍDICO"
+  },
+  {
+    "coluna": "colesterol_hdl_mg_dL",
+    "loinc": "2085-9",
+    "categoria": "3. METABOLISMO DA GLICOSE E PERFIL LIPÍDICO"
+  },
+  {
+    "coluna": "colesterol_ldl_mg_dL",
+    "loinc": "13457-7",
+    "categoria": "3. METABOLISMO DA GLICOSE E PERFIL LIPÍDICO"
+  },
+  {
+    "coluna": "colesterol_vldl_mg_dL",
+    "loinc": "13458-5",
+    "categoria": "3. METABOLISMO DA GLICOSE E PERFIL LIPÍDICO"
+  },
+  {
+    "coluna": "colesterol_nao_hdl_mg_dL",
+    "loinc": "43396-1",
+    "categoria": "3. METABOLISMO DA GLICOSE E PERFIL LIPÍDICO"
+  },
+  {
+    "coluna": "triglicerideos_mg_dL",
+    "loinc": "2571-8",
+    "categoria": "3. METABOLISMO DA GLICOSE E PERFIL LIPÍDICO"
+  },
+  {
+    "coluna": "apolipoproteina_a1_mg_dL",
+    "loinc": "1869-7",
+    "categoria": "3. METABOLISMO DA GLICOSE E PERFIL LIPÍDICO"
+  },
+  {
+    "coluna": "apolipoproteina_b_mg_dL",
+    "loinc": "1884-6",
+    "categoria": "3. METABOLISMO DA GLICOSE E PERFIL LIPÍDICO"
+  },
+  {
+    "coluna": "lipoproteina_a_mg_dL",
+    "loinc": "10835-7",
+    "categoria": "3. METABOLISMO DA GLICOSE E PERFIL LIPÍDICO"
+  },
+  {
+    "coluna": "creatinina_mg_dL",
+    "loinc": "2160-0",
+    "categoria": "4. FUNÇÃO RENAL E ELETRÓLITOS"
+  },
+  {
+    "coluna": "tfg_estimada_mL_min",
+    "loinc": "33914-3",
+    "categoria": "4. FUNÇÃO RENAL E ELETRÓLITOS"
+  },
+  {
+    "coluna": "ureia_mg_dL",
+    "loinc": "3094-0",
+    "categoria": "4. FUNÇÃO RENAL E ELETRÓLITOS"
+  },
+  {
+    "coluna": "acido_urico_mg_dL",
+    "loinc": "3084-1",
+    "categoria": "4. FUNÇÃO RENAL E ELETRÓLITOS"
+  },
+  {
+    "coluna": "sodio_mEq_L",
+    "loinc": "2951-2",
+    "categoria": "4. FUNÇÃO RENAL E ELETRÓLITOS"
+  },
+  {
+    "coluna": "potassio_mEq_L",
+    "loinc": "2823-3",
+    "categoria": "4. FUNÇÃO RENAL E ELETRÓLITOS"
+  },
+  {
+    "coluna": "calcio_total_mg_dL",
+    "loinc": "17861-6",
+    "categoria": "4. FUNÇÃO RENAL E ELETRÓLITOS"
+  },
+  {
+    "coluna": "calcio_ionico_mmol_L",
+    "loinc": "1994-3",
+    "categoria": "4. FUNÇÃO RENAL E ELETRÓLITOS"
+  },
+  {
+    "coluna": "magnesio_mg_dL",
+    "loinc": "19123-9",
+    "categoria": "4. FUNÇÃO RENAL E ELETRÓLITOS"
+  },
+  {
+    "coluna": "fosforo_mg_dL",
+    "loinc": "2777-1",
+    "categoria": "4. FUNÇÃO RENAL E ELETRÓLITOS"
+  },
+  {
+    "coluna": "cloro_mEq_L",
+    "loinc": "2075-0",
+    "categoria": "4. FUNÇÃO RENAL E ELETRÓLITOS"
+  }
+]

@@ -1,0 +1,3189 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NHANES Explorer | Plataforma de Análise Multitabela</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+    }
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: #f1f5f9;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 4px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+    .badge-soft-green { background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0; }
+    .badge-soft-amber { background: #fffbeb; color: #b45309; border: 1px solid #fde68a; }
+    .badge-soft-red { background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; }
+    .badge-soft-blue { background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; }
+    .badge-soft-purple { background: #faf5ff; color: #6b21a8; border: 1px solid #e9d5ff; }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 antialiased min-h-screen flex flex-col">
+
+  <!-- TOP HEADER -->
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-sky-500 flex items-center justify-center text-white shadow-md shadow-indigo-100">
+          <i class="fa-solid fa-dna text-lg"></i>
+        </div>
+        <div>
+          <div class="flex items-center space-x-2">
+            <h1 class="text-lg font-bold text-slate-900 tracking-tight leading-none">NHANES Clinical Data Explorer</h1>
+            <span class="px-2 py-0.5 text-xs font-semibold rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200">11 Tabelas Cruzadas por ID</span>
+          </div>
+          <p class="text-xs text-slate-500 mt-0.5">Cruzamento de dados laboratoriais, cardiovasculares, sono e estilo de vida por SEQN</p>
+        </div>
+      </div>
+
+      <!-- Quick Action Buttons -->
+      <div class="flex items-center space-x-3">
+        <button onclick="pickRandomPatient()" class="inline-flex items-center px-3.5 py-1.5 rounded-lg text-xs font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-300 transition-colors">
+          <i class="fa-solid fa-dice mr-1.5 text-indigo-600"></i> Sortear Paciente
+        </button>
+        <button onclick="exportCurrentCSV()" class="inline-flex items-center px-3.5 py-1.5 rounded-lg text-xs font-medium text-white bg-indigo-600 hover:bg-indigo-700 shadow-sm transition-colors">
+          <i class="fa-solid fa-file-arrow-down mr-1.5"></i> Exportar CSV Filtrado
+        </button>
+      </div>
+    </div>
+
+    <!-- NAVIGATION TABS -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 border-t border-slate-100 flex space-x-1 sm:space-x-4">
+      <button onclick="switchTab('overview')" id="tab-btn-overview" class="tab-btn py-3 px-3 text-xs sm:text-sm font-medium border-b-2 border-indigo-600 text-indigo-600 flex items-center space-x-2 cursor-pointer transition-all">
+        <i class="fa-solid fa-chart-pie"></i>
+        <span>1. Visão Geral & Coorte</span>
+      </button>
+      <button onclick="switchTab('explorer')" id="tab-btn-explorer" class="tab-btn py-3 px-3 text-xs sm:text-sm font-medium border-b-2 border-transparent text-slate-500 hover:text-slate-800 flex items-center space-x-2 cursor-pointer transition-all">
+        <i class="fa-solid fa-table-cells"></i>
+        <span>2. Tabela Cruzada Multitabela</span>
+      </button>
+      <button onclick="switchTab('patient')" id="tab-btn-patient" class="tab-btn py-3 px-3 text-xs sm:text-sm font-medium border-b-2 border-transparent text-slate-500 hover:text-slate-800 flex items-center space-x-2 cursor-pointer transition-all">
+        <i class="fa-solid fa-user-doctor"></i>
+        <span>3. Dossiê 360° do Paciente</span>
+      </button>
+      <button onclick="switchTab('correlations')" id="tab-btn-correlations" class="tab-btn py-3 px-3 text-xs sm:text-sm font-medium border-b-2 border-transparent text-slate-500 hover:text-slate-800 flex items-center space-x-2 cursor-pointer transition-all">
+        <i class="fa-solid fa-chart-line"></i>
+        <span>4. Correlações</span>
+      </button>
+      <button onclick="switchTab('ml')" id="tab-btn-ml" class="tab-btn py-3 px-3 text-xs sm:text-sm font-medium border-b-2 border-transparent text-slate-500 hover:text-slate-800 flex items-center space-x-2 cursor-pointer transition-all">
+        <i class="fa-solid fa-brain text-indigo-600"></i>
+        <span>5. Machine Learning & Wearables</span>
+      </button>
+      <button onclick="switchTab('codebook')" id="tab-btn-codebook" class="tab-btn py-3 px-3 text-xs sm:text-sm font-medium border-b-2 border-transparent text-slate-500 hover:text-slate-800 flex items-center space-x-2 cursor-pointer transition-all">
+        <i class="fa-solid fa-book-medical"></i>
+        <span>6. Dicionário de Variáveis</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- MAIN CONTAINER -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+
+    <!-- ==================== TAB 1: VISÃO GERAL ==================== -->
+    <div id="view-overview" class="tab-content space-y-6">
+      <!-- KPI Stats Banner -->
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm relative overflow-hidden">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Participantes Únicos</span>
+            <div class="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center text-sm font-bold">
+              <i class="fa-solid fa-users"></i>
+            </div>
+          </div>
+          <p id="kpi-total-participants" class="text-3xl font-bold text-slate-900 mt-2">--</p>
+          <p class="text-xs text-slate-500 mt-1 flex items-center">
+            <span class="text-emerald-600 font-medium mr-1"><i class="fa-solid fa-fingerprint"></i> ID comum: SEQN</span> em todas as tabelas
+          </p>
+        </div>
+
+        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm relative overflow-hidden">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Tabelas Integradas</span>
+            <div class="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center text-sm font-bold">
+              <i class="fa-solid fa-layer-group"></i>
+            </div>
+          </div>
+          <p id="kpi-total-tables" class="text-3xl font-bold text-indigo-600 mt-2">11</p>
+          <p class="text-xs text-slate-500 mt-1">Exames, hábitos, clínicas e demografia</p>
+        </div>
+
+        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm relative overflow-hidden">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Painel Laboratorial Completo</span>
+            <div class="w-8 h-8 rounded-lg bg-rose-50 text-rose-600 flex items-center justify-center text-sm font-bold">
+              <i class="fa-solid fa-vial"></i>
+            </div>
+          </div>
+          <p id="kpi-complete-labs" class="text-3xl font-bold text-slate-900 mt-2">--</p>
+          <p class="text-xs text-slate-500 mt-1">Hemograma + Colesterol + Ferritina</p>
+        </div>
+
+        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm relative overflow-hidden">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Pacientes Super-Completos</span>
+            <div class="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center text-sm font-bold">
+              <i class="fa-solid fa-circle-check"></i>
+            </div>
+          </div>
+          <p id="kpi-super-complete" class="text-3xl font-bold text-emerald-600 mt-2">--</p>
+          <p class="text-xs text-slate-500 mt-1">Presentes em ≥ 8 das 9 dimensões</p>
+        </div>
+      </div>
+
+      <!-- Overview Charts Grid -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Chart 1: Tables Coverage -->
+        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm lg:col-span-2">
+          <div class="flex items-center justify-between mb-4">
+            <div>
+              <h3 class="font-bold text-slate-900">Cobertura de Participantes por Arquivo / Domínio</h3>
+              <p class="text-xs text-slate-500">Quantos indivíduos foram avaliados em cada módulo do NHANES</p>
+            </div>
+            <span class="text-xs px-2.5 py-1 rounded-md bg-slate-100 text-slate-600 font-mono">Total = 15.560</span>
+          </div>
+          <div class="h-64">
+            <canvas id="chart-tables-coverage"></canvas>
+          </div>
+        </div>
+
+        <!-- Chart 2: Demographic Distribution -->
+        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+          <div class="mb-4">
+            <h3 class="font-bold text-slate-900">Perfil Etário da Coorte</h3>
+            <p class="text-xs text-slate-500">Distribuição por faixas de idade</p>
+          </div>
+          <div class="h-64 flex items-center justify-center">
+            <canvas id="chart-age-dist"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- Summary of 11 Tables Cards -->
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="px-6 py-4 border-b border-slate-200 bg-slate-50 flex items-center justify-between">
+          <div>
+            <h3 class="font-bold text-slate-900">Mapeamento dos 11 Arquivos SAS (.xpt)</h3>
+            <p class="text-xs text-slate-500">Cada participante possui o mesmo ID (campo SEQN) permitindo junção relacional 1:1</p>
+          </div>
+          <span class="text-xs font-semibold px-2.5 py-1 bg-indigo-100 text-indigo-800 rounded-md">Todos integrados com sucesso</span>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="min-w-full divide-y divide-slate-200 text-xs">
+            <thead class="bg-slate-50">
+              <tr>
+                <th class="px-4 py-3 text-left font-semibold text-slate-600">Arquivo / Tabela</th>
+                <th class="px-4 py-3 text-left font-semibold text-slate-600">Nome Clínico</th>
+                <th class="px-4 py-3 text-left font-semibold text-slate-600">Categoria</th>
+                <th class="px-4 py-3 text-right font-semibold text-slate-600">Nº Linhas</th>
+                <th class="px-4 py-3 text-right font-semibold text-slate-600">Nº Variáveis</th>
+                <th class="px-4 py-3 text-right font-semibold text-slate-600">Cobertura (%)</th>
+                <th class="px-4 py-3 text-center font-semibold text-slate-600">Ação Rápida</th>
+              </tr>
+            </thead>
+            <tbody id="tables-list-tbody" class="divide-y divide-slate-100 bg-white">
+              <!-- Rendered via JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== TAB 2: EXPLORADOR MULTITABELA ==================== -->
+    <div id="view-explorer" class="tab-content hidden space-y-4">
+      <!-- Filter Bar -->
+      <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm space-y-4">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <div class="flex items-center space-x-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+            <h3 class="font-bold text-slate-900">Cruzamento de Dados Multitabela</h3>
+            <span id="filtered-count-badge" class="px-2 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-700">Carregando...</span>
+          </div>
+
+          <!-- Quick Filters Reset & Export -->
+          <div class="flex items-center space-x-2">
+            <button onclick="resetFilters()" class="text-xs font-medium text-slate-600 hover:text-slate-900 px-3 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-50">
+              <i class="fa-solid fa-arrow-rotate-left mr-1"></i> Limpar Filtros
+            </button>
+            <button onclick="exportCurrentCSV()" class="text-xs font-medium text-white bg-indigo-600 hover:bg-indigo-700 px-3.5 py-1.5 rounded-lg shadow-sm">
+              <i class="fa-solid fa-download mr-1"></i> Baixar Dados em CSV
+            </button>
+          </div>
+        </div>
+
+        <!-- Filter Controls -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+          <!-- Search SEQN -->
+          <div>
+            <label class="block text-xs font-medium text-slate-600 mb-1">Buscar por ID (SEQN)</label>
+            <div class="relative">
+              <input type="text" id="filter-search" placeholder="Ex: 109264" oninput="debounceApplyFilters()" class="w-full text-xs rounded-lg border-slate-200 bg-slate-50 focus:bg-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 py-1.5 pl-7 pr-2 border">
+              <i class="fa-solid fa-magnifying-glass absolute left-2.5 top-2.5 text-slate-400 text-xs"></i>
+            </div>
+          </div>
+
+          <!-- Gender -->
+          <div>
+            <label class="block text-xs font-medium text-slate-600 mb-1">Gênero</label>
+            <select id="filter-gender" onchange="applyFilters()" class="w-full text-xs rounded-lg border-slate-200 bg-slate-50 focus:bg-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 py-1.5 px-2 border">
+              <option value="all">Todos os Gêneros</option>
+              <option value="Masculino">Masculino</option>
+              <option value="Feminino">Feminino</option>
+            </select>
+          </div>
+
+          <!-- Age Group -->
+          <div>
+            <label class="block text-xs font-medium text-slate-600 mb-1">Faixa Etária</label>
+            <select id="filter-age-group" onchange="applyFilters()" class="w-full text-xs rounded-lg border-slate-200 bg-slate-50 focus:bg-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 py-1.5 px-2 border">
+              <option value="all">Todas as Idades</option>
+              <option value="Criança (0-12)">Criança (0-12)</option>
+              <option value="Adolescente (13-19)">Adolescente (13-19)</option>
+              <option value="Adulto Jovem (20-39)">Adulto Jovem (20-39)</option>
+              <option value="Adulto Médio (40-59)">Adulto Médio (40-59)</option>
+              <option value="Idoso (60+)">Idoso (60+)</option>
+            </select>
+          </div>
+
+          <!-- Blood Pressure Class -->
+          <div>
+            <label class="block text-xs font-medium text-slate-600 mb-1">Pressão Arterial</label>
+            <select id="filter-bp-class" onchange="applyFilters()" class="w-full text-xs rounded-lg border-slate-200 bg-slate-50 focus:bg-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 py-1.5 px-2 border">
+              <option value="all">Todas as Leituras</option>
+              <option value="Pressão Normal">Pressão Normal</option>
+              <option value="Pressão Elevada">Pressão Elevada</option>
+              <option value="Hipertensão Estágio 1">Hipertensão Estágio 1</option>
+              <option value="Hipertensão Estágio 2">Hipertensão Estágio 2</option>
+            </select>
+          </div>
+
+          <!-- Cholesterol Class -->
+          <div>
+            <label class="block text-xs font-medium text-slate-600 mb-1">Colesterol Total</label>
+            <select id="filter-chol-class" onchange="applyFilters()" class="w-full text-xs rounded-lg border-slate-200 bg-slate-50 focus:bg-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 py-1.5 px-2 border">
+              <option value="all">Todos os Níveis</option>
+              <option value="Desejável (<200 mg/dL)">Desejável (&lt;200)</option>
+              <option value="Limítrofe (200-239 mg/dL)">Limítrofe (200-239)</option>
+              <option value="Elevado (≥240 mg/dL)">Elevado (≥240)</option>
+            </select>
+          </div>
+
+          <!-- Required Modules Checkboxes -->
+          <div class="flex flex-col justify-end space-y-1">
+            <label class="inline-flex items-center text-xs text-slate-600 cursor-pointer">
+              <input type="checkbox" id="filter-req-blood" onchange="applyFilters()" class="rounded text-indigo-600 focus:ring-indigo-500 mr-1.5">
+              <span>Exigir Hemograma</span>
+            </label>
+            <label class="inline-flex items-center text-xs text-slate-600 cursor-pointer">
+              <input type="checkbox" id="filter-req-bp" onchange="applyFilters()" class="rounded text-indigo-600 focus:ring-indigo-500 mr-1.5">
+              <span>Exigir Pressão Aferida</span>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Results Table -->
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
+        <div class="overflow-x-auto custom-scrollbar">
+          <table class="min-w-full divide-y divide-slate-200 text-xs">
+            <thead class="bg-slate-50 select-none">
+              <tr>
+                <th onclick="changeSort('SEQN')" class="px-4 py-3 text-left font-semibold text-slate-700 cursor-pointer hover:bg-slate-100">
+                  ID (SEQN) <span id="sort-icon-SEQN">↕</span>
+                </th>
+                <th class="px-3 py-3 text-left font-semibold text-slate-700">Gênero</th>
+                <th onclick="changeSort('RIDAGEYR')" class="px-3 py-3 text-right font-semibold text-slate-700 cursor-pointer hover:bg-slate-100">
+                  Idade <span id="sort-icon-RIDAGEYR">↕</span>
+                </th>
+                <th class="px-3 py-3 text-center font-semibold text-slate-700">Dimensões</th>
+                <th onclick="changeSort('LBXHGB')" class="px-3 py-3 text-right font-semibold text-slate-700 cursor-pointer hover:bg-slate-100">
+                  Hemoglobina <span id="sort-icon-LBXHGB">↕</span>
+                </th>
+                <th onclick="changeSort('LBXTC')" class="px-3 py-3 text-right font-semibold text-slate-700 cursor-pointer hover:bg-slate-100">
+                  Colesterol <span id="sort-icon-LBXTC">↕</span>
+                </th>
+                <th onclick="changeSort('LBXFER')" class="px-3 py-3 text-right font-semibold text-slate-700 cursor-pointer hover:bg-slate-100">
+                  Ferritina <span id="sort-icon-LBXFER">↕</span>
+                </th>
+                <th class="px-3 py-3 text-center font-semibold text-slate-700">Pressão Aferida (Média)</th>
+                <th class="px-3 py-3 text-center font-semibold text-slate-700">Status PA</th>
+                <th class="px-3 py-3 text-right font-semibold text-slate-700">Sono (h)</th>
+                <th class="px-4 py-3 text-center font-semibold text-slate-700">Ação</th>
+              </tr>
+            </thead>
+            <tbody id="patients-table-tbody" class="divide-y divide-slate-100 bg-white">
+              <!-- Loaded dynamically via JS -->
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Pagination Bar -->
+        <div class="px-6 py-3 bg-slate-50 border-t border-slate-200 flex items-center justify-between text-xs text-slate-600">
+          <div id="pagination-info">Mostrando 0 de 0</div>
+          <div class="flex items-center space-x-2">
+            <button onclick="prevPage()" id="btn-prev-page" class="px-3 py-1.5 rounded border border-slate-200 bg-white hover:bg-slate-100 font-medium disabled:opacity-50 disabled:cursor-not-allowed">
+              <i class="fa-solid fa-chevron-left mr-1"></i> Anterior
+            </button>
+            <span id="page-current-display" class="font-bold text-slate-800">1</span>
+            <button onclick="nextPage()" id="btn-next-page" class="px-3 py-1.5 rounded border border-slate-200 bg-white hover:bg-slate-100 font-medium disabled:opacity-50 disabled:cursor-not-allowed">
+              Próximo <i class="fa-solid fa-chevron-right ml-1"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== TAB 3: DOSSIÊ 360° DO PACIENTE ==================== -->
+    <div id="view-patient" class="tab-content hidden space-y-6">
+      <!-- Search & Random Patient Selector Header -->
+      <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-wrap items-center justify-between gap-4">
+        <div class="flex items-center space-x-3">
+          <div class="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold text-lg">
+            <i class="fa-solid fa-address-card"></i>
+          </div>
+          <div>
+            <h3 class="font-bold text-slate-900 leading-tight">Prontuário Unificado 360°</h3>
+            <p class="text-xs text-slate-500">Visualização integrada de todas as 11 tabelas para o paciente selecionado</p>
+          </div>
+        </div>
+
+        <div class="flex items-center space-x-3">
+          <div class="flex items-center">
+            <input type="number" id="patient-input-seqn" placeholder="Digite o ID SEQN..." class="text-xs rounded-l-lg border-slate-300 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 py-2 px-3 border w-44">
+            <button onclick="loadPatientByInput()" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold px-4 py-2 rounded-r-lg border border-indigo-600">
+              Buscar ID
+            </button>
+          </div>
+          <span class="text-slate-300">|</span>
+          <button onclick="pickRandomPatient()" class="inline-flex items-center px-3.5 py-2 rounded-lg text-xs font-semibold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 transition-colors">
+            <i class="fa-solid fa-shuffle mr-1.5"></i> Outro Paciente Aleatório
+          </button>
+        </div>
+      </div>
+
+      <!-- Patient Dossier Content -->
+      <div id="patient-dossier-container" class="space-y-6">
+        <!-- Will be populated dynamically -->
+        <div class="text-center py-16 bg-white rounded-xl border border-slate-200">
+          <i class="fa-solid fa-spinner fa-spin text-3xl text-indigo-500"></i>
+          <p class="text-sm text-slate-500 mt-2">Carregando dossiê clínico do paciente...</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== TAB 4: LABORATÓRIO DE CORRELAÇÕES ==================== -->
+    <div id="view-correlations" class="tab-content hidden space-y-6">
+      <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm space-y-4">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h3 class="font-bold text-slate-900">Laboratório de Análise Bivariada & Correlação</h3>
+            <p class="text-xs text-slate-500">Explore como diferentes métricas clínicas e de estilo de vida interagem entre si na coorte</p>
+          </div>
+
+          <!-- Quick Presets -->
+          <div class="flex flex-wrap items-center gap-2">
+            <span class="text-xs font-semibold text-slate-400">Exemplos Rápidos:</span>
+            <button onclick="setCorrelationVars('RIDAGEYR', 'LBXTC')" class="text-xs px-2.5 py-1 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium">Idade vs Colesterol</button>
+            <button onclick="setCorrelationVars('SLD012', 'bp_sys_avg')" class="text-xs px-2.5 py-1 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium">Sono vs Pressão Sistólica</button>
+            <button onclick="setCorrelationVars('LBXHGB', 'LBXFER')" class="text-xs px-2.5 py-1 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium">Hemoglobina vs Ferritina</button>
+            <button onclick="setCorrelationVars('PAD680', 'bp_sys_avg')" class="text-xs px-2.5 py-1 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium">Sedentarismo vs Pressão</button>
+          </div>
+        </div>
+
+        <!-- Variable Selectors -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 items-end pt-2 border-t border-slate-100">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Eixo X (Variável Independente)</label>
+            <select id="corr-var-x" class="w-full text-xs rounded-lg border-slate-200 bg-slate-50 focus:bg-white focus:border-indigo-500 p-2 border">
+              <option value="RIDAGEYR">RIDAGEYR - Idade (Anos)</option>
+              <option value="SLD012">SLD012 - Horas de Sono por Noite</option>
+              <option value="PAD680">PAD680 - Minutos Sentado por Dia (Sedentarismo)</option>
+              <option value="LBXHGB">LBXHGB - Hemoglobina (g/dL)</option>
+              <option value="LBXFER">LBXFER - Ferritina Sérica (ng/mL)</option>
+              <option value="LBXTC">LBXTC - Colesterol Total (mg/dL)</option>
+              <option value="bp_sys_avg">bp_sys_avg - Pressão Sistólica Média (mmHg)</option>
+              <option value="bp_dia_avg">bp_dia_avg - Pressão Diastólica Média (mmHg)</option>
+              <option value="pulse_avg">pulse_avg - Pulso / Frequência Cardíaca (bpm)</option>
+              <option value="LBXWBCSI">LBXWBCSI - Leucócitos Totais (10³ cel/µL)</option>
+              <option value="LBXPLTSI">LBXPLTSI - Plaquetas (10³ cel/µL)</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Eixo Y (Variável Dependente)</label>
+            <select id="corr-var-y" class="w-full text-xs rounded-lg border-slate-200 bg-slate-50 focus:bg-white focus:border-indigo-500 p-2 border">
+              <option value="LBXTC">LBXTC - Colesterol Total (mg/dL)</option>
+              <option value="bp_sys_avg">bp_sys_avg - Pressão Sistólica Média (mmHg)</option>
+              <option value="bp_dia_avg">bp_dia_avg - Pressão Diastólica Média (mmHg)</option>
+              <option value="LBXHGB">LBXHGB - Hemoglobina (g/dL)</option>
+              <option value="LBXFER">LBXFER - Ferritina Sérica (ng/mL)</option>
+              <option value="SLD012">SLD012 - Horas de Sono por Noite</option>
+              <option value="PAD680">PAD680 - Minutos Sentado por Dia (Sedentarismo)</option>
+              <option value="pulse_avg">pulse_avg - Pulso / Frequência Cardíaca (bpm)</option>
+              <option value="LBXWBCSI">LBXWBCSI - Leucócitos Totais (10³ cel/µL)</option>
+              <option value="LBXPLTSI">LBXPLTSI - Plaquetas (10³ cel/µL)</option>
+            </select>
+          </div>
+
+          <div>
+            <button onclick="loadCorrelationChart()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs py-2 px-4 rounded-lg shadow-sm">
+              <i class="fa-solid fa-calculator mr-1.5"></i> Calcular Dispersão & R de Pearson
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Scatter Chart & Stats -->
+      <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm lg:col-span-3">
+          <div class="flex items-center justify-between mb-2">
+            <h4 id="corr-chart-title" class="font-bold text-slate-900 text-sm">Dispersão Amostral</h4>
+            <span class="text-xs text-slate-400">Azul = Homens | Rosa = Mulheres | Linha Vermelha = Regressão</span>
+          </div>
+          <div class="h-96">
+            <canvas id="chart-correlation-scatter"></canvas>
+          </div>
+        </div>
+
+        <!-- Metrics Side Box -->
+        <div class="space-y-4">
+          <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+            <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Coeficiente de Pearson (r)</span>
+            <p id="stat-pearson-r" class="text-3xl font-extrabold text-indigo-600 mt-2">--</p>
+            <p id="stat-pearson-desc" class="text-xs text-slate-500 mt-1">Carregando correlação...</p>
+          </div>
+
+          <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+            <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Amostras Válidas Pareadas</span>
+            <p id="stat-paired-samples" class="text-2xl font-bold text-slate-800 mt-2">--</p>
+            <p class="text-xs text-slate-500 mt-1">Participantes com ambas as medidas presentes</p>
+          </div>
+
+          <div class="bg-indigo-50 border border-indigo-200 rounded-xl p-4 text-xs text-indigo-900 space-y-1">
+            <p class="font-bold flex items-center"><i class="fa-solid fa-lightbulb text-indigo-600 mr-1.5"></i> Dica de Análise:</p>
+            <p>Valores próximos a <strong>+1</strong> indicam correlação positiva direta; próximos a <strong>-1</strong> indicam correlação inversa; e próximos a <strong>0</strong> indicam independência linear entre as variáveis.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== TAB 5: MACHINE LEARNING ==================== -->
+    <div id="view-ml" class="tab-content hidden space-y-6">
+      <!-- ML Header Banner -->
+      <div class="bg-gradient-to-r from-indigo-900 via-indigo-800 to-slate-900 rounded-2xl p-6 text-white shadow-lg relative overflow-hidden">
+        <div class="relative z-10 flex flex-wrap items-center justify-between gap-4">
+          <div class="max-w-3xl">
+            <div class="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-200 text-xs font-semibold mb-3 border border-emerald-400/30">
+              <i class="fa-solid fa-circle-check text-emerald-400"></i>
+              <span id="ml-cohort-badge">Modelos Aprovados para Produção (CDC NHANES)</span>
+            </div>
+            <h2 id="ml-main-title" class="text-2xl font-extrabold tracking-tight">Modelos Fisiológicos Aprovados para Deploy</h2>
+            <p id="ml-main-desc" class="text-sm text-slate-300 mt-2 leading-relaxed">
+              Foco exclusivo nos 4 modelos de alta precisão preditiva (R² até 0,865 e ROC-AUC até 0,887): Ancoragem em Saudáveis, Eixo Metabólico, Apneia do Sono e Resposta Inflamatória.
+            </p>
+          </div>
+
+          <!-- Cohort Mode Toggle -->
+          <div class="bg-indigo-950/80 p-1.5 rounded-xl border border-indigo-700/50 flex flex-wrap gap-1">
+            <button onclick="setMlMode('anchored')" id="btn-mode-anchored" class="px-3 py-2 rounded-lg text-xs font-bold transition-all bg-indigo-500 text-white shadow">
+              🎯 Ancoragem em Saudáveis
+            </button>
+            <button onclick="setMlMode('metabolic')" id="btn-mode-metabolic" class="px-3 py-2 rounded-lg text-xs font-bold transition-all text-slate-300 hover:text-white">
+              ⚡ 1. Modelo Metabólico (Glicose/HbA1c)
+            </button>
+            <button onclick="setMlMode('apnea')" id="btn-mode-apnea" class="px-3 py-2 rounded-lg text-xs font-bold transition-all text-slate-300 hover:text-white">
+              🫁 2. Apneia & Hipóxia Noturna
+            </button>
+            <button onclick="setMlMode('inflammatory')" id="btn-mode-inflammatory" class="px-3 py-2 rounded-lg text-xs font-bold transition-all text-slate-300 hover:text-white">
+              🔥 3. Inflamatório & Autonômico
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Models Comparison Benchmark -->
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4" id="ml-benchmark-cards-container">
+        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm transition-all" id="ml-card-box-1">
+          <span id="ml-card-title-1" class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Regressão Linear</span>
+          <p id="ml-card-r2-1" class="text-2xl font-extrabold text-slate-800 mt-1">R²: 0,874</p>
+          <p id="ml-card-mae-1" class="text-xs text-slate-500 mt-1">MAE: 2,95 bpm | RMSE: 3,89 bpm</p>
+          <span id="ml-card-tag-1" class="inline-block mt-2 text-[10px] px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 font-bold">Fidelidade clínica (< 3 bpm)</span>
+        </div>
+
+        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm transition-all" id="ml-card-box-2">
+          <span id="ml-card-title-2" class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Gradient Boosting Ancorado</span>
+          <p id="ml-card-r2-2" class="text-2xl font-extrabold text-slate-800 mt-1">R²: 0,862</p>
+          <p id="ml-card-mae-2" class="text-xs text-slate-500 mt-1">MAE: 3,08 bpm | RMSE: 4,05 bpm</p>
+          <span id="ml-card-tag-2" class="inline-block mt-2 text-[10px] px-2 py-0.5 rounded bg-blue-100 text-blue-800 font-bold">Captura não-linearidade vagal</span>
+        </div>
+
+        <div class="bg-white p-4 rounded-xl border border-indigo-200 bg-indigo-50/20 shadow-sm transition-all" id="ml-card-box-3">
+          <span id="ml-card-title-3" class="text-[11px] font-bold text-indigo-600 uppercase tracking-wider">Correlação Entrada vs Repouso</span>
+          <p id="ml-card-r2-3" class="text-2xl font-extrabold text-indigo-700 mt-1">r: 0,932</p>
+          <p id="ml-card-mae-3" class="text-xs text-slate-500 mt-1">Queda Vagal Média: 1,56 bpm</p>
+          <span id="ml-card-tag-3" class="inline-block mt-2 text-[10px] px-2 py-0.5 rounded bg-indigo-100 text-indigo-800 font-bold">Pessoas saudáveis desaceleram</span>
+        </div>
+
+        <div class="bg-white p-4 rounded-xl border border-emerald-200 bg-emerald-50/20 shadow-sm transition-all" id="ml-card-box-4">
+          <span id="ml-card-title-4" class="text-[11px] font-bold text-emerald-700 uppercase tracking-wider">Calibração Wearable</span>
+          <p id="ml-card-r2-4" class="text-2xl font-extrabold text-emerald-700 mt-1">Gap: 22,6 bpm</p>
+          <p id="ml-card-mae-4" class="text-xs text-slate-500 mt-1">Correlação Relógio: 0,789</p>
+          <span id="ml-card-tag-4" class="inline-block mt-2 text-[10px] px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 font-bold">Vigília vs Sono Profundo</span>
+        </div>
+      </div>
+
+      
+      <!-- ======================================================= -->
+      <!-- CAMADA DE INFERÊNCIA & CALIBRAÇÃO (WEARABLE <-> NHANES) -->
+      <!-- ======================================================= -->
+      <div id="wearable-bridge-container" class="bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 rounded-2xl p-6 text-white shadow-xl border border-indigo-500/30 space-y-6">
+        <!-- Section Header -->
+        <div class="flex flex-wrap items-center justify-between gap-4 border-b border-indigo-800/60 pb-5">
+          <div class="space-y-1">
+            <div class="inline-flex items-center space-x-2 px-3 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-semibold border border-emerald-500/30">
+              <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+              <span>Ponte de Inferência Wearable &harr; NHANES Ativa</span>
+            </div>
+            <h3 class="text-xl font-bold text-white flex items-center gap-2">
+              <i class="fa-solid fa-satellite-dish text-indigo-400"></i>
+              Camada de Inferência & Calibração Individual (&Delta;<sub>ind</sub>)
+            </h3>
+            <p class="text-xs text-indigo-200/80 max-w-2xl">
+              Alimenta os modelos treinados no NHANES com dados contínuos de smartwatches (média 7–14 dias via <code>POST /wearables/sync</code>) e cruza com exames laboratoriais reais (<code>observations</code>) para calibração de resíduos.
+            </p>
+          </div>
+
+          <!-- Controls: User select & Days toggle -->
+          <div class="flex flex-wrap items-center gap-3 bg-slate-950/60 p-2.5 rounded-xl border border-indigo-700/40">
+            <div class="flex items-center space-x-2">
+              <label for="wb-user-select" class="text-xs font-semibold text-indigo-200">Paciente / Wearable:</label>
+              <select id="wb-user-select" onchange="loadWearableInference()" class="text-xs font-semibold rounded-lg bg-slate-800 border-indigo-600 text-white p-1.5 border focus:ring-2 focus:ring-indigo-400 outline-none">
+                <option value="U0001">U0001 (Janaina de Assis - Exames Reais Open Health)</option>
+                <option value="U0002">U0002 (Homem, 23a, Atleta - FCR 47 bpm)</option>
+                <option value="U0003">U0003 (Homem, 27a, IMC 18.6 - FCR 64 bpm)</option>
+                <option value="U0004">U0004 (Homem, 31a, IMC 28.5 - Sobrepeso)</option>
+                <option value="U0005">U0005 (Homem, 34a, IMC 21.6 - FCR 60 bpm)</option>
+              </select>
+            </div>
+
+            <div class="flex items-center space-x-1 bg-slate-900 p-1 rounded-lg border border-slate-700">
+              <button onclick="setWearableWindow(7)" id="btn-wb-7d" class="px-2.5 py-1 text-xs font-bold rounded text-slate-400 hover:text-white transition-all">7 Dias</button>
+              <button onclick="setWearableWindow(14)" id="btn-wb-14d" class="px-2.5 py-1 text-xs font-bold rounded bg-indigo-600 text-white shadow transition-all">14 Dias</button>
+            </div>
+
+            <button onclick="testWearableSyncPost()" class="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white shadow transition-all">
+              <i class="fa-solid fa-cloud-arrow-up mr-1.5"></i> Testar POST /sync
+            </button>
+          </div>
+        </div>
+
+        <!-- Metric Summary Cards: Delta Ind, Residual, Metabolic & Apnea -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <!-- Card 1: Calibração Individual Delta_ind -->
+          <div class="bg-slate-900/80 p-4 rounded-xl border border-indigo-800/40 relative overflow-hidden">
+            <span class="text-[11px] font-bold text-indigo-300 uppercase tracking-wider">Calibração Individual (&Delta;<sub>ind</sub>)</span>
+            <div class="flex items-baseline space-x-2 mt-1">
+              <p id="wb-delta-ind" class="text-3xl font-extrabold text-white">-- bpm</p>
+              <span id="wb-baseline-hr" class="text-xs text-indigo-300 font-mono">(Base: --)</span>
+            </div>
+            <p id="wb-expected-hr" class="text-xs text-slate-400 mt-1">Esperado NHANES: -- bpm</p>
+            <div class="mt-2 text-[10px] px-2 py-0.5 rounded bg-indigo-900/60 text-indigo-200 border border-indigo-700/50 inline-block font-semibold">
+              Alvo Individual: <span id="wb-target-hr" class="font-bold text-emerald-400">-- bpm</span>
+            </div>
+          </div>
+
+          <!-- Card 2: Resíduo Autonômico Atual -->
+          <div class="bg-slate-900/80 p-4 rounded-xl border border-indigo-800/40 relative overflow-hidden" id="wb-residual-card">
+            <span class="text-[11px] font-bold text-slate-300 uppercase tracking-wider">Resíduo Autonômico Atual</span>
+            <div class="flex items-baseline space-x-2 mt-1">
+              <p id="wb-residual-val" class="text-3xl font-extrabold text-emerald-400">-- bpm</p>
+              <span id="wb-current-hr" class="text-xs text-slate-300 font-mono">(Medido: --)</span>
+            </div>
+            <p id="wb-autonomic-desc" class="text-xs text-slate-300 mt-1 line-clamp-2">Carregando dados...</p>
+            <div id="wb-autonomic-badge" class="mt-2 text-[10px] px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 inline-block font-bold">
+              Zona Verde (Equilíbrio)
+            </div>
+          </div>
+
+          <!-- Card 3: Rastreio Metabólico & Resíduo HbA1c -->
+          <div class="bg-slate-900/80 p-4 rounded-xl border border-indigo-800/40 relative overflow-hidden">
+            <span class="text-[11px] font-bold text-amber-300 uppercase tracking-wider">Risco Metabólico (Wearable)</span>
+            <div class="flex items-baseline space-x-2 mt-1">
+              <p id="wb-metabolic-prob" class="text-3xl font-extrabold text-white">--%</p>
+              <span id="wb-metabolic-badge" class="text-xs font-bold px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300">Normal</span>
+            </div>
+            <div class="flex items-center justify-between text-xs text-slate-300 mt-1">
+              <span>HbA1c Wearable: <strong id="wb-pred-hba1c" class="text-amber-400">--%</strong></span>
+              <span>Lab Real: <strong id="wb-real-hba1c" class="text-sky-300">--%</strong></span>
+            </div>
+            <div class="mt-2 text-[10px] text-slate-400">
+              Resíduo HbA1c: <span id="wb-res-hba1c" class="font-mono font-bold text-white">--%</span>
+            </div>
+          </div>
+
+          <!-- Card 4: Apneia & Saturação Noturna -->
+          <div class="bg-slate-900/80 p-4 rounded-xl border border-indigo-800/40 relative overflow-hidden">
+            <span class="text-[11px] font-bold text-sky-300 uppercase tracking-wider">Apneia & Hipóxia Noturna</span>
+            <div class="flex items-baseline space-x-2 mt-1">
+              <p id="wb-apnea-prob" class="text-3xl font-extrabold text-white">--%</p>
+              <span id="wb-apnea-badge" class="text-xs font-bold px-1.5 py-0.5 rounded bg-sky-500/20 text-sky-300">Baixo Risco</span>
+            </div>
+            <div class="flex items-center justify-between text-xs text-slate-300 mt-1">
+              <span>SpO2 Noturna: <strong id="wb-spo2-val" class="text-sky-400">--%</strong></span>
+              <span>WASO: <strong id="wb-waso-val" class="text-slate-300">-- min</strong></span>
+            </div>
+            <div id="wb-apnea-msg" class="mt-2 text-[10px] text-slate-400 truncate">
+              Sem indicativo de dessaturação crônica.
+            </div>
+          </div>
+        </div>
+
+        <!-- Mapeamento de Variáveis (Wearable -> NHANES) Accordion / Detail Table -->
+        <div class="bg-slate-950/70 rounded-xl p-4 border border-indigo-900/40">
+          <div class="flex items-center justify-between mb-3 cursor-pointer" onclick="toggleMappingTable()">
+            <div class="flex items-center space-x-2">
+              <i class="fa-solid fa-network-wired text-indigo-400 text-sm"></i>
+              <h4 class="text-xs font-bold uppercase tracking-wider text-indigo-200">Mapeamento Fisiológico de Entrada: Wearable &harr; NHANES &harr; Exames de Sangue</h4>
+            </div>
+            <button class="text-xs text-indigo-300 hover:text-white flex items-center space-x-1">
+              <span id="btn-toggle-mapping-text">Ocultar Detalhes</span>
+              <i id="btn-toggle-mapping-icon" class="fa-solid fa-chevron-up text-[10px]"></i>
+            </button>
+          </div>
+          <div id="wb-mapping-table-wrapper" class="overflow-x-auto">
+            <table class="w-full text-left text-xs">
+              <thead class="text-[11px] font-bold uppercase tracking-wider text-slate-400 border-b border-indigo-900/60 pb-2">
+                <tr>
+                  <th class="py-2 px-3">Variável Fisiológica</th>
+                  <th class="py-2 px-3">Origem no Wearable (Média da Janela)</th>
+                  <th class="py-2 px-3">Variável Equivalente NHANES</th>
+                  <th class="py-2 px-3 text-right">Status da Ponte</th>
+                </tr>
+              </thead>
+              <tbody id="wb-mapping-tbody" class="divide-y divide-indigo-950/60 font-mono text-slate-300">
+                <!-- Dynamically generated rows -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Feature Importance Chart & Simulator Grid -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <!-- Feature Importance Chart -->
+        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm lg:col-span-6 flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <h4 class="font-bold text-slate-900 text-sm">Importância Relativa das Variáveis (Feature Importance)</h4>
+              <span class="text-xs text-indigo-600 font-semibold">Random Forest / Boosting</span>
+            </div>
+            <p class="text-xs text-slate-500 mb-4">Contribuição percentual de cada parâmetro do hemograma e controle para a previsão da FC:</p>
+            <div class="h-80">
+              <canvas id="chart-ml-importance"></canvas>
+            </div>
+          </div>
+          <div class="mt-4 pt-3 border-t border-slate-100 text-xs text-slate-500">
+            <span class="font-bold text-slate-700">Destaque Clínico:</span> Leucócitos e Plaquetas (inflamação sistêmica) e a Ferritina (depósitos de ferro mitocondrial) superam o efeito isolado da Hemoglobina na população não-anêmica.
+          </div>
+        </div>
+
+        <!-- Interactive Heart Rate Simulator -->
+        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm lg:col-span-6 space-y-4">
+          <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+            <div>
+              <h4 class="font-bold text-slate-900 text-sm">Simulador Interativo por Machine Learning</h4>
+              <p class="text-xs text-slate-500">Ajuste os exames hematológicos e veja a FC de repouso estimada em tempo real</p>
+            </div>
+            <div class="text-right">
+              <span class="text-[10px] uppercase font-bold text-slate-400">Batimento Estimado</span>
+              <p id="sim-predicted-pulse" class="text-3xl font-extrabold text-indigo-600">-- bpm</p>
+            </div>
+          </div>
+
+          <!-- Controls Grid -->
+          <div id="sim-controls-grid" class="grid grid-cols-2 gap-3 text-xs">
+            <!-- Hemoglobin -->
+            <div class="bg-slate-50 p-2.5 rounded-lg border border-slate-200">
+              <div class="flex justify-between mb-1">
+                <span class="font-semibold text-slate-700">Hemoglobina (Hb)</span>
+                <span id="sim-val-hgb" class="font-mono font-bold text-indigo-700">14.2 g/dL</span>
+              </div>
+              <input type="range" id="sim-input-hgb" min="8.0" max="18.5" step="0.1" value="14.2" oninput="runMlSimulation()" class="w-full accent-indigo-600">
+            </div>
+
+            <!-- Ferritin -->
+            <div class="bg-slate-50 p-2.5 rounded-lg border border-slate-200">
+              <div class="flex justify-between mb-1">
+                <span class="font-semibold text-slate-700">Ferritina Sérica</span>
+                <span id="sim-val-fer" class="font-mono font-bold text-indigo-700">105 ng/mL</span>
+              </div>
+              <input type="range" id="sim-input-fer" min="5" max="500" step="5" value="105" oninput="runMlSimulation()" class="w-full accent-indigo-600">
+            </div>
+
+            <!-- WBC Leucócitos -->
+            <div class="bg-slate-50 p-2.5 rounded-lg border border-slate-200">
+              <div class="flex justify-between mb-1">
+                <span class="font-semibold text-slate-700">Leucócitos Totais</span>
+                <span id="sim-val-wbc" class="font-mono font-bold text-indigo-700">7.1 10³/µL</span>
+              </div>
+              <input type="range" id="sim-input-wbc" min="2.5" max="16.0" step="0.2" value="7.1" oninput="runMlSimulation()" class="w-full accent-indigo-600">
+            </div>
+
+            <!-- Platelets Plaquetas -->
+            <div class="bg-slate-50 p-2.5 rounded-lg border border-slate-200">
+              <div class="flex justify-between mb-1">
+                <span class="font-semibold text-slate-700">Plaquetas</span>
+                <span id="sim-val-plt" class="font-mono font-bold text-indigo-700">238 10³/µL</span>
+              </div>
+              <input type="range" id="sim-input-plt" min="100" max="500" step="5" value="238" oninput="runMlSimulation()" class="w-full accent-indigo-600">
+            </div>
+
+            <!-- RDW -->
+            <div class="bg-slate-50 p-2.5 rounded-lg border border-slate-200">
+              <div class="flex justify-between mb-1">
+                <span class="font-semibold text-slate-700">RDW (Anisocitose)</span>
+                <span id="sim-val-rdw" class="font-mono font-bold text-indigo-700">12.5%</span>
+              </div>
+              <input type="range" id="sim-input-rdw" min="11.0" max="18.0" step="0.1" value="12.5" oninput="runMlSimulation()" class="w-full accent-indigo-600">
+            </div>
+
+            <!-- Age -->
+            <div class="bg-slate-50 p-2.5 rounded-lg border border-slate-200">
+              <div class="flex justify-between mb-1">
+                <span class="font-semibold text-slate-700">Idade Cronológica</span>
+                <span id="sim-val-age" class="font-mono font-bold text-indigo-700">45 anos</span>
+              </div>
+              <input type="range" id="sim-input-age" min="18" max="80" step="1" value="45" oninput="runMlSimulation()" class="w-full accent-indigo-600">
+            </div>
+
+            <!-- Gender -->
+            <div class="bg-slate-50 p-2.5 rounded-lg border border-slate-200">
+              <span class="font-semibold text-slate-700 block mb-1">Gênero Biológico</span>
+              <div class="flex space-x-3 pt-1">
+                <label class="inline-flex items-center cursor-pointer">
+                  <input type="radio" name="sim-gender" value="1.0" checked onchange="runMlSimulation()" class="text-indigo-600">
+                  <span class="ml-1 text-slate-700">Homem</span>
+                </label>
+                <label class="inline-flex items-center cursor-pointer">
+                  <input type="radio" name="sim-gender" value="2.0" onchange="runMlSimulation()" class="text-indigo-600">
+                  <span class="ml-1 text-slate-700">Mulher</span>
+                </label>
+              </div>
+            </div>
+
+            <!-- Sedentarism -->
+            <div class="bg-slate-50 p-2.5 rounded-lg border border-slate-200">
+              <div class="flex justify-between mb-1">
+                <span class="font-semibold text-slate-700">Tempo Sentado / Dia</span>
+                <span id="sim-val-pad" class="font-mono font-bold text-indigo-700">360 min</span>
+              </div>
+              <input type="range" id="sim-input-pad" min="60" max="720" step="30" value="360" oninput="runMlSimulation()" class="w-full accent-indigo-600">
+            </div>
+          </div>
+
+          <div class="p-3 rounded-lg bg-indigo-50 border border-indigo-100 flex items-center justify-between text-xs">
+            <span class="text-indigo-900 font-medium">Experimente reduzir a Ferritina para &lt; 20 ng/mL ou elevar os Leucócitos!</span>
+            <button onclick="resetSimulator()" class="px-2.5 py-1 rounded bg-white text-indigo-700 font-semibold border border-indigo-200 hover:bg-indigo-100">Resetar Valores</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- OLS Statistical Table for Hormones and Hemogram -->
+      <div id="ml-regression-table-section" class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden p-5 space-y-3">
+        <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3">
+          <div>
+            <h4 id="ml-reg-table-title" class="font-bold text-slate-900 text-sm flex items-center">
+              <i class="fa-solid fa-square-root-variable text-indigo-600 mr-2"></i>
+              Tabela de Regressão OLS: Preditor Autonômico Ancorado em Saudáveis
+            </h4>
+            <p id="ml-reg-table-subtitle" class="text-xs text-slate-500">Coorte de 3.816 Indivíduos Estritamente Saudáveis: Efeito conjunto da Leitura Inicial/Wearable, Demografia e Hemograma na FC de Repouso Real</p>
+          </div>
+          <div class="flex items-center space-x-2 text-xs">
+            <span id="ml-reg-r2-badge" class="px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 font-bold">R² = 0,875 (87,5%)</span>
+            <span id="ml-reg-f-badge" class="px-2 py-0.5 rounded bg-indigo-50 text-indigo-700 border border-indigo-200 font-mono">F = 2.951,0 (p < 0.0001)</span>
+          </div>
+        </div>
+
+        <div class="overflow-x-auto custom-scrollbar">
+          <table class="min-w-full divide-y divide-slate-200 text-xs">
+            <thead class="bg-slate-50">
+              <tr>
+                <th class="px-3 py-2.5 text-left font-semibold text-slate-700">Variável Biomarcador</th>
+                <th class="px-3 py-2.5 text-left font-semibold text-slate-700">Categoria</th>
+                <th class="px-3 py-2.5 text-right font-semibold text-slate-700">Coeficiente (β)</th>
+                <th class="px-3 py-2.5 text-right font-semibold text-slate-700">Erro Padrão</th>
+                <th class="px-3 py-2.5 text-right font-semibold text-slate-700">Valor-p</th>
+                <th class="px-3 py-2.5 text-center font-semibold text-slate-700">Significância</th>
+                <th class="px-4 py-2.5 text-left font-semibold text-slate-700">Interpretação Fisiológica Clínica</th>
+              </tr>
+            </thead>
+            <tbody id="ml-regression-tbody" class="divide-y divide-slate-100 bg-white">
+              <!-- Rendered dynamically via JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== TAB 6: DICIONÁRIO DE VARIÁVEIS ==================== -->
+    <div id="view-codebook" class="tab-content hidden space-y-4">
+      <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <h3 class="font-bold text-slate-900">Dicionário de Variáveis & Codebook Oficial</h3>
+          <p class="text-xs text-slate-500">Mapeamento completo das colunas contidas em todos os 11 arquivos do NHANES</p>
+        </div>
+
+        <div class="flex items-center space-x-3">
+          <input type="text" id="codebook-search" oninput="filterCodebook()" placeholder="Filtrar por nome ou código..." class="text-xs rounded-lg border-slate-200 bg-slate-50 focus:bg-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 py-1.5 px-3 border w-64">
+          <select id="codebook-table-filter" onchange="filterCodebook()" class="text-xs rounded-lg border-slate-200 bg-slate-50 focus:bg-white focus:border-indigo-500 py-1.5 px-3 border">
+            <option value="all">Todas as Tabelas</option>
+            <option value="P_DEMO">P_DEMO (Demografia)</option>
+            <option value="P_CBC">P_CBC (Hemograma)</option>
+            <option value="P_TCHOL">P_TCHOL (Colesterol)</option>
+            <option value="P_FERTIN">P_FERTIN (Ferritina)</option>
+            <option value="P_BPXO">P_BPXO (Pressão Aferida)</option>
+            <option value="P_BPQ">P_BPQ (Histórico Hipertensão)</option>
+            <option value="P_SLQ">P_SLQ (Sono)</option>
+            <option value="P_PAQ">P_PAQ (Atividade Física)</option>
+            <option value="P_ALQ">P_ALQ (Álcool)</option>
+            <option value="P_HSQ">P_HSQ (Status Saúde)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="overflow-x-auto custom-scrollbar">
+          <table class="min-w-full divide-y divide-slate-200 text-xs">
+            <thead class="bg-slate-50">
+              <tr>
+                <th class="px-4 py-3 text-left font-semibold text-slate-600">Coluna / Código</th>
+                <th class="px-4 py-3 text-left font-semibold text-slate-600">Descrição Oficial (Label CDC)</th>
+                <th class="px-4 py-3 text-left font-semibold text-slate-600">Arquivo de Origem</th>
+                <th class="px-4 py-3 text-left font-semibold text-slate-600">Categoria</th>
+                <th class="px-4 py-3 text-right font-semibold text-slate-600">Preenchimento Válido</th>
+              </tr>
+            </thead>
+            <tbody id="codebook-tbody" class="divide-y divide-slate-100 bg-white">
+              <!-- Loaded dynamically via JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- JAVASCRIPT LOGIC -->
+  <script>
+    let globalStats = null;
+    let currentPatientsData = [];
+    let currentPage = 1;
+    let currentSortBy = "SEQN";
+    let currentSortDir = "asc";
+    let allCodebookData = [];
+    let debounceTimer = null;
+    let coverageChartInstance = null;
+    let ageChartInstance = null;
+    let scatterChartInstance = null;
+    let mlImportanceChartInstance = null;
+    let mlInsightsData = null;
+
+    // Startup
+    document.addEventListener("DOMContentLoaded", () => {
+      loadOverviewStats();
+      applyFilters();
+      loadCodebook();
+    });
+
+    // Tab Navigation
+    function switchTab(tabId) {
+      document.querySelectorAll(".tab-content").forEach(el => el.classList.add("hidden"));
+      document.querySelectorAll(".tab-btn").forEach(btn => {
+        btn.classList.remove("border-indigo-600", "text-indigo-600");
+        btn.classList.add("border-transparent", "text-slate-500");
+      });
+
+      const targetView = document.getElementById("view-" + tabId);
+      const targetBtn = document.getElementById("tab-btn-" + tabId);
+      if (targetView) targetView.classList.remove("hidden");
+      if (targetBtn) {
+        targetBtn.classList.remove("border-transparent", "text-slate-500");
+        targetBtn.classList.add("border-indigo-600", "text-indigo-600");
+      }
+
+      window.scrollTo({ top: 0, behavior: "smooth" });
+
+      if (tabId === "correlations" && !scatterChartInstance) {
+        loadCorrelationChart();
+      }
+      if (tabId === "ml") {
+        if (!anchoredInsightsData) loadAnchoredInsights();
+        loadWearableUsers();
+        loadWearableInference();
+      }
+    }
+
+    // 1. Overview API & Rendering
+    async function loadOverviewStats() {
+      try {
+        const res = await fetch("/api/stats");
+        const data = await res.json();
+        globalStats = data;
+
+        // Fill KPIs
+        document.getElementById("kpi-total-participants").innerText = Number(data.total_participants).toLocaleString("pt-BR");
+        document.getElementById("kpi-complete-labs").innerText = Number(data.complete_lab_count).toLocaleString("pt-BR");
+        document.getElementById("kpi-super-complete").innerText = Number(data.super_complete_count).toLocaleString("pt-BR");
+
+        // Fill Tables Table
+        const tbody = document.getElementById("tables-list-tbody");
+        tbody.innerHTML = "";
+        data.tables_info.forEach(t => {
+          const tr = document.createElement("tr");
+          tr.className = "hover:bg-slate-50 transition-colors";
+          tr.innerHTML = `
+            <td class="px-4 py-3 font-mono font-semibold text-indigo-700">${t.table_name}.xpt</td>
+            <td class="px-4 py-3 font-medium text-slate-900">${t.title}</td>
+            <td class="px-4 py-3"><span class="px-2 py-0.5 rounded text-[11px] font-semibold bg-slate-100 text-slate-700">${t.category}</span></td>
+            <td class="px-4 py-3 text-right font-mono">${Number(t.row_count).toLocaleString("pt-BR")}</td>
+            <td class="px-4 py-3 text-right font-mono">${t.col_count}</td>
+            <td class="px-4 py-3 text-right">
+              <div class="flex items-center justify-end space-x-2">
+                <span class="font-semibold text-slate-700">${t.coverage_pct}%</span>
+                <div class="w-16 bg-slate-200 h-2 rounded-full overflow-hidden">
+                  <div class="bg-indigo-600 h-full rounded-full" style="width: ${t.coverage_pct}%"></div>
+                </div>
+              </div>
+            </td>
+            <td class="px-4 py-3 text-center">
+              <button onclick="inspectTableCodebook('${t.table_name}')" class="text-xs text-indigo-600 hover:text-indigo-800 font-semibold">
+                Ver Variáveis &rarr;
+              </button>
+            </td>
+          `;
+          tbody.appendChild(tr);
+        });
+
+        // Render Charts
+        renderCoverageChart(data.tables_info);
+        renderAgeChart(data.age_dist);
+
+      } catch (err) {
+        console.error("Erro ao carregar estatísticas gerais:", err);
+      }
+    }
+
+    function renderCoverageChart(tables) {
+      const ctx = document.getElementById("chart-tables-coverage").getContext("2d");
+      const labels = tables.map(t => t.title.split("(")[0].trim());
+      const values = tables.map(t => t.unique_seqn);
+
+      if (coverageChartInstance) coverageChartInstance.destroy();
+      coverageChartInstance = new Chart(ctx, {
+        type: "bar",
+        data: {
+          labels: labels,
+          datasets: [{
+            label: "Nº de Participantes Avaliados",
+            data: values,
+            backgroundColor: "#6366f1",
+            borderRadius: 6
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false }
+          },
+          scales: {
+            y: { beginAtZero: true, grid: { color: "#f1f5f9" } },
+            x: { grid: { display: false }, ticks: { maxRotation: 45, minRotation: 30, font: { size: 10 } } }
+          }
+        }
+      });
+    }
+
+    function renderAgeChart(ageDist) {
+      const ctx = document.getElementById("chart-age-dist").getContext("2d");
+      const labels = Object.keys(ageDist);
+      const values = Object.values(ageDist);
+
+      if (ageChartInstance) ageChartInstance.destroy();
+      ageChartInstance = new Chart(ctx, {
+        type: "doughnut",
+        data: {
+          labels: labels,
+          datasets: [{
+            data: values,
+            backgroundColor: ["#38bdf8", "#818cf8", "#4f46e5", "#0ea5e9", "#1e293b"],
+            borderWidth: 2,
+            borderColor: "#ffffff"
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { position: "bottom", labels: { boxWidth: 10, font: { size: 10 } } }
+          }
+        }
+      });
+    }
+
+    // 2. Multitable Explorer API & Rendering
+    function debounceApplyFilters() {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        currentPage = 1;
+        applyFilters();
+      }, 350);
+    }
+
+    function resetFilters() {
+      document.getElementById("filter-search").value = "";
+      document.getElementById("filter-gender").value = "all";
+      document.getElementById("filter-age-group").value = "all";
+      document.getElementById("filter-bp-class").value = "all";
+      document.getElementById("filter-chol-class").value = "all";
+      document.getElementById("filter-req-blood").checked = false;
+      document.getElementById("filter-req-bp").checked = false;
+      currentPage = 1;
+      applyFilters();
+    }
+
+    async function applyFilters() {
+      const search = document.getElementById("filter-search").value;
+      const gender = document.getElementById("filter-gender").value;
+      const ageGroup = document.getElementById("filter-age-group").value;
+      const bpClass = document.getElementById("filter-bp-class").value;
+      const cholClass = document.getElementById("filter-chol-class").value;
+      const reqBlood = document.getElementById("filter-req-blood").checked;
+      const reqBP = document.getElementById("filter-req-bp").checked;
+
+      const params = new URLSearchParams({
+        page: currentPage,
+        pageSize: 20,
+        search: search,
+        gender: gender,
+        ageGroup: ageGroup,
+        bpClass: bpClass,
+        cholClass: cholClass,
+        reqBlood: reqBlood,
+        reqBP: reqBP,
+        sortBy: currentSortBy,
+        sortDir: currentSortDir
+      });
+
+      try {
+        const res = await fetch("/api/patients?" + params.toString());
+        const data = await res.json();
+        currentPatientsData = data.items;
+
+        document.getElementById("filtered-count-badge").innerText = `${Number(data.total_matching).toLocaleString("pt-BR")} participantes encontrados`;
+        document.getElementById("pagination-info").innerText = `Mostrando página ${data.page} de ${data.total_pages} (${Number(data.total_matching).toLocaleString("pt-BR")} total)`;
+        document.getElementById("page-current-display").innerText = data.page;
+        document.getElementById("btn-prev-page").disabled = (data.page <= 1);
+        document.getElementById("btn-next-page").disabled = (data.page >= data.total_pages);
+
+        renderPatientsTable(data.items);
+      } catch (err) {
+        console.error("Erro ao aplicar filtros:", err);
+      }
+    }
+
+    function renderPatientsTable(items) {
+      const tbody = document.getElementById("patients-table-tbody");
+      tbody.innerHTML = "";
+
+      if (items.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="11" class="px-6 py-12 text-center text-slate-400">Nenhum participante encontrado com os filtros selecionados.</td></tr>`;
+        return;
+      }
+
+      items.forEach(p => {
+        const tr = document.createElement("tr");
+        tr.className = "hover:bg-indigo-50/50 transition-colors cursor-pointer";
+        tr.onclick = (e) => {
+          if (!e.target.closest("button")) {
+            viewPatientDossier(p.SEQN);
+          }
+        };
+
+        // BP Badge
+        let bpBadge = `<span class="text-slate-400">Sem dados</span>`;
+        if (p.bp_classification === "Pressão Normal") {
+          bpBadge = `<span class="badge-soft-green px-2 py-0.5 rounded-full font-semibold">Normal</span>`;
+        } else if (p.bp_classification === "Pressão Elevada") {
+          bpBadge = `<span class="badge-soft-amber px-2 py-0.5 rounded-full font-semibold">Elevada</span>`;
+        } else if (p.bp_classification && p.bp_classification.includes("Hipertensão")) {
+          bpBadge = `<span class="badge-soft-red px-2 py-0.5 rounded-full font-semibold">${p.bp_classification}</span>`;
+        }
+
+        // Cholesterol Badge
+        let cholBadge = p.LBXTC ? `<span class="font-mono ${p.LBXTC >= 240 ? 'text-rose-600 font-bold' : (p.LBXTC >= 200 ? 'text-amber-600 font-medium' : 'text-slate-700')}">${p.LBXTC} mg/dL</span>` : `<span class="text-slate-400">--</span>`;
+
+        tr.innerHTML = `
+          <td class="px-4 py-3 font-mono font-bold text-indigo-700">#${p.SEQN}</td>
+          <td class="px-3 py-3 text-slate-800">${p.gender_label}</td>
+          <td class="px-3 py-3 text-right font-semibold text-slate-900">${p.RIDAGEYR !== null ? p.RIDAGEYR + ' anos' : '--'}</td>
+          <td class="px-3 py-3 text-center">
+            <span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold bg-indigo-50 text-indigo-700">
+              <i class="fa-solid fa-layer-group mr-1 text-[9px]"></i> ${p.tables_count}/9
+            </span>
+          </td>
+          <td class="px-3 py-3 text-right font-mono">${p.LBXHGB !== null ? p.LBXHGB + ' g/dL' : '--'}</td>
+          <td class="px-3 py-3 text-right">${cholBadge}</td>
+          <td class="px-3 py-3 text-right font-mono">${p.LBXFER !== null ? p.LBXFER + ' ng/mL' : '--'}</td>
+          <td class="px-3 py-3 text-center font-mono font-medium">${(p.bp_sys_avg && p.bp_dia_avg) ? `${p.bp_sys_avg} / ${p.bp_dia_avg}` : '--'}</td>
+          <td class="px-3 py-3 text-center">${bpBadge}</td>
+          <td class="px-3 py-3 text-right font-mono">${p.SLD012 !== null ? p.SLD012 + 'h' : '--'}</td>
+          <td class="px-4 py-3 text-center">
+            <button onclick="viewPatientDossier(${p.SEQN})" class="px-2.5 py-1 text-xs font-semibold rounded bg-indigo-100 hover:bg-indigo-200 text-indigo-800 transition-colors">
+              Dossiê 360° &rarr;
+            </button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function changeSort(column) {
+      if (currentSortBy === column) {
+        currentSortDir = currentSortDir === "asc" ? "desc" : "asc";
+      } else {
+        currentSortBy = column;
+        currentSortDir = "asc";
+      }
+      document.querySelectorAll("[id^='sort-icon-']").forEach(el => el.innerText = "↕");
+      const targetIcon = document.getElementById(`sort-icon-${column}`);
+      if (targetIcon) {
+        targetIcon.innerText = currentSortDir === "asc" ? "▲" : "▼";
+      }
+      applyFilters();
+    }
+
+    function prevPage() {
+      if (currentPage > 1) {
+        currentPage--;
+        applyFilters();
+      }
+    }
+
+    function nextPage() {
+      currentPage++;
+      applyFilters();
+    }
+
+    function exportCurrentCSV() {
+      const search = document.getElementById("filter-search").value;
+      const gender = document.getElementById("filter-gender").value;
+      const ageGroup = document.getElementById("filter-age-group").value;
+      const bpClass = document.getElementById("filter-bp-class").value;
+      const cholClass = document.getElementById("filter-chol-class").value;
+      const reqBlood = document.getElementById("filter-req-blood").checked;
+      const reqBP = document.getElementById("filter-req-bp").checked;
+
+      const params = new URLSearchParams({
+        search: search,
+        gender: gender,
+        ageGroup: ageGroup,
+        bpClass: bpClass,
+        cholClass: cholClass,
+        reqBlood: reqBlood,
+        reqBP: reqBP
+      });
+
+      window.open("/api/export?" + params.toString(), "_blank");
+    }
+
+    // 3. Patient Dossier 360 API & Rendering
+    async function loadPatientByInput() {
+      const seqn = document.getElementById("patient-input-seqn").value.trim();
+      if (!seqn) return alert("Digite o número do ID SEQN.");
+      viewPatientDossier(seqn);
+    }
+
+    async function pickRandomPatient() {
+      try {
+        const res = await fetch("/api/patient/random");
+        const profile = await res.json();
+        renderPatientDossier(profile);
+        switchTab("patient");
+      } catch (err) {
+        console.error("Erro ao sortear paciente:", err);
+      }
+    }
+
+    async function viewPatientDossier(seqn) {
+      switchTab("patient");
+      const container = document.getElementById("patient-dossier-container");
+      container.innerHTML = `
+        <div class="text-center py-16 bg-white rounded-xl border border-slate-200">
+          <i class="fa-solid fa-spinner fa-spin text-3xl text-indigo-500"></i>
+          <p class="text-sm text-slate-500 mt-2">Carregando todas as 11 dimensões do paciente #${seqn}...</p>
+        </div>
+      `;
+
+      try {
+        const res = await fetch(`/api/patient/${seqn}`);
+        if (!res.ok) throw new Error("Paciente não encontrado");
+        const profile = await res.json();
+        renderPatientDossier(profile);
+      } catch (err) {
+        container.innerHTML = `
+          <div class="text-center py-16 bg-white rounded-xl border border-slate-200 text-rose-600">
+            <i class="fa-solid fa-triangle-exclamation text-3xl mb-2"></i>
+            <p class="font-bold">Participante #${seqn} não encontrado.</p>
+            <p class="text-xs text-slate-500 mt-1">Verifique se o número do ID SEQN existe na coorte.</p>
+          </div>
+        `;
+      }
+    }
+
+    function renderPatientDossier(p) {
+      document.getElementById("patient-input-seqn").value = p.demographics.seqn;
+      const container = document.getElementById("patient-dossier-container");
+
+      // Generate Hemogram Items HTML
+      let cbcCards = "";
+      if (p.cbc && p.cbc.length > 0) {
+        cbcCards = p.cbc.map(c => `
+          <div class="bg-slate-50 p-3 rounded-lg border border-slate-200 flex flex-col justify-between">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-semibold text-slate-700">${c.name}</span>
+              <span class="px-2 py-0.5 rounded text-[10px] font-bold ${c.status_color === 'green' ? 'badge-soft-green' : (c.status_color === 'amber' ? 'badge-soft-amber' : 'badge-soft-red')}">${c.status}</span>
+            </div>
+            <div class="my-2">
+              <span class="text-xl font-bold font-mono text-slate-900">${c.value}</span>
+              <span class="text-xs text-slate-500 ml-1">${c.unit}</span>
+            </div>
+            <div class="text-[10px] text-slate-400">Ref: ${c.ref_min ?? '--'} a ${c.ref_max ?? '--'} ${c.unit}</div>
+          </div>
+        `).join("");
+      } else {
+        cbcCards = `<div class="col-span-4 p-4 text-center text-xs text-slate-400 bg-slate-50 rounded-lg">Hemograma não realizado para este indivíduo.</div>`;
+      }
+
+      // Generate BP readings
+      const bpReadings = p.blood_pressure.readings.map((r, idx) => `
+        <div class="text-center p-2 rounded bg-slate-50 border border-slate-200">
+          <span class="text-[10px] font-semibold text-slate-400">Medição ${idx + 1}</span>
+          <p class="text-xs font-mono font-bold text-slate-800 mt-0.5">${r.sys ? `${r.sys}/${r.dia}` : '--'}</p>
+          <span class="text-[10px] text-slate-500">${r.pulse ? `${r.pulse} bpm` : '--'}</span>
+        </div>
+      `).join("");
+
+      container.innerHTML = `
+        <!-- Patient Summary Card Header -->
+        <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+          <div class="flex flex-wrap items-center justify-between gap-4">
+            <div class="flex items-center space-x-4">
+              <div class="w-14 h-14 rounded-2xl bg-indigo-600 text-white flex items-center justify-center font-bold text-2xl shadow-md shadow-indigo-100">
+                ${p.demographics.gender === 'Masculino' ? '<i class="fa-solid fa-mars"></i>' : '<i class="fa-solid fa-venus"></i>'}
+              </div>
+              <div>
+                <div class="flex items-center space-x-3">
+                  <h2 class="text-2xl font-extrabold text-slate-900">Participante #${p.demographics.seqn}</h2>
+                  <span class="px-2.5 py-1 rounded-md text-xs font-bold bg-indigo-100 text-indigo-800">
+                    ${p.demographics.tables_count} de 9 Dimensões Conectadas
+                  </span>
+                </div>
+                <div class="flex flex-wrap items-center gap-3 text-xs text-slate-500 mt-1">
+                  <span><strong>Idade:</strong> ${p.demographics.age} anos (${p.demographics.age_group})</span>
+                  <span>•</span>
+                  <span><strong>Gênero:</strong> ${p.demographics.gender}</span>
+                  <span>•</span>
+                  <span><strong>Etnia:</strong> ${p.demographics.race_ethnicity}</span>
+                  <span>•</span>
+                  <span><strong>Escolaridade:</strong> ${p.demographics.education}</span>
+                  <span>•</span>
+                  <span><strong>Estado Civil:</strong> ${p.demographics.marital_status}</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Health Status Indicators -->
+            <div class="flex flex-wrap items-center gap-2">
+              <div class="p-2.5 rounded-lg border border-slate-200 bg-slate-50 text-center min-w-28">
+                <span class="text-[10px] font-semibold text-slate-500 uppercase">Pressão Arterial</span>
+                <p class="text-xs font-bold text-slate-900 mt-0.5">${p.blood_pressure.sys_avg ? `${p.blood_pressure.sys_avg}/${p.blood_pressure.dia_avg}` : 'Sem Aferição'}</p>
+                <span class="text-[10px] font-medium text-indigo-600">${p.blood_pressure.classification}</span>
+              </div>
+
+              <div class="p-2.5 rounded-lg border border-slate-200 bg-slate-50 text-center min-w-28">
+                <span class="text-[10px] font-semibold text-slate-500 uppercase">Colesterol Total</span>
+                <p class="text-xs font-bold text-slate-900 mt-0.5">${p.cholesterol.value ? `${p.cholesterol.value} mg/dL` : 'Sem Exame'}</p>
+                <span class="text-[10px] font-medium ${p.cholesterol.status_color === 'green' ? 'text-emerald-600' : 'text-rose-600'}">${p.cholesterol.status}</span>
+              </div>
+
+              <div class="p-2.5 rounded-lg border border-slate-200 bg-slate-50 text-center min-w-28">
+                <span class="text-[10px] font-semibold text-slate-500 uppercase">Sono Noturno</span>
+                <p class="text-xs font-bold text-slate-900 mt-0.5">${p.lifestyle.sleep_hours ? `${p.lifestyle.sleep_hours} horas` : 'Não relatado'}</p>
+                <span class="text-[10px] text-slate-500">por dia útil</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 3 Sections Grid: Lab + Cardiovascular + Lifestyle -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+          <!-- 1. Lab Panel (Hemograma + Colesterol + Ferritina) -->
+          <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm lg:col-span-2 space-y-4">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div class="flex items-center space-x-2">
+                <i class="fa-solid fa-vial-virus text-rose-500"></i>
+                <h4 class="font-bold text-slate-900 text-sm">Painel Hematológico & Bioquímico</h4>
+              </div>
+              <span class="text-xs text-slate-400 font-mono">P_CBC + P_TCHOL + P_FERTIN</span>
+            </div>
+
+            <!-- Key Highlights (Cholesterol & Ferritin) -->
+            <div class="grid grid-cols-2 gap-3">
+              <div class="p-4 rounded-xl border border-slate-200 bg-gradient-to-br from-slate-50 to-indigo-50/30">
+                <div class="flex items-center justify-between">
+                  <span class="text-xs font-semibold text-slate-600">Colesterol Total Sérico</span>
+                  <span class="text-[10px] font-bold px-2 py-0.5 rounded ${p.cholesterol.status_color === 'green' ? 'badge-soft-green' : 'badge-soft-red'}">${p.cholesterol.status}</span>
+                </div>
+                <div class="mt-2">
+                  <span class="text-3xl font-extrabold text-slate-900">${p.cholesterol.value ?? '--'}</span>
+                  <span class="text-xs text-slate-500 font-medium">mg/dL</span>
+                </div>
+                <p class="text-[11px] text-slate-500 mt-1">Desejável: &lt; 200 mg/dL | Limítrofe: 200-239 mg/dL</p>
+              </div>
+
+              <div class="p-4 rounded-xl border border-slate-200 bg-gradient-to-br from-slate-50 to-rose-50/30">
+                <div class="flex items-center justify-between">
+                  <span class="text-xs font-semibold text-slate-600">Ferritina Sérica</span>
+                  <span class="text-[10px] font-bold px-2 py-0.5 rounded ${p.ferritin.status_color === 'green' ? 'badge-soft-green' : 'badge-soft-amber'}">${p.ferritin.status}</span>
+                </div>
+                <div class="mt-2">
+                  <span class="text-3xl font-extrabold text-slate-900">${p.ferritin.value ?? '--'}</span>
+                  <span class="text-xs text-slate-500 font-medium">ng/mL</span>
+                </div>
+                <p class="text-[11px] text-slate-500 mt-1">Faixa de Ref.: ${p.ferritin.ref_min} a ${p.ferritin.ref_max} ng/mL</p>
+              </div>
+            </div>
+
+            <!-- Hemogram Grid -->
+            <div>
+              <h5 class="text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Hemograma Completo (Contagem Celular)</h5>
+              <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                ${cbcCards}
+              </div>
+            </div>
+          </div>
+
+          <!-- 2. Cardiovascular & Lifestyle Column -->
+          <div class="space-y-6">
+            <!-- Cardiovascular Box -->
+            <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm space-y-3">
+              <div class="flex items-center justify-between pb-2 border-b border-slate-100">
+                <div class="flex items-center space-x-2">
+                  <i class="fa-solid fa-heart-pulse text-red-500"></i>
+                  <h4 class="font-bold text-slate-900 text-sm">Sinais Vitais & Cardiovascular</h4>
+                </div>
+                <span class="text-xs text-slate-400 font-mono">P_BPXO + P_BPQ</span>
+              </div>
+
+              <div class="text-center py-2">
+                <span class="text-xs text-slate-500">Média das Aferições em Consultório</span>
+                <p class="text-3xl font-extrabold text-slate-900 font-mono mt-0.5">${p.blood_pressure.sys_avg ? `${p.blood_pressure.sys_avg} / ${p.blood_pressure.dia_avg}` : '--'}</p>
+                <span class="text-xs font-bold text-indigo-700">${p.blood_pressure.classification}</span>
+              </div>
+
+              <!-- 3 readings row -->
+              <div class="grid grid-cols-3 gap-2 pt-1">
+                ${bpReadings}
+              </div>
+
+              <!-- Questionnaires history -->
+              <div class="pt-3 border-t border-slate-100 space-y-2 text-xs">
+                <div class="flex justify-between">
+                  <span class="text-slate-600">Já informado sobre Hipertensão?</span>
+                  <span class="font-semibold text-slate-800">${p.blood_pressure.told_high_bp}</span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-slate-600">Uso de Remédio p/ Pressão:</span>
+                  <span class="font-semibold text-slate-800">${p.blood_pressure.bp_meds}</span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-slate-600">Já informado sobre Colesterol Alto?</span>
+                  <span class="font-semibold text-slate-800">${p.blood_pressure.told_high_chol}</span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-slate-600">Uso de Remédio p/ Colesterol:</span>
+                  <span class="font-semibold text-slate-800">${p.blood_pressure.chol_meds}</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Lifestyle Box -->
+            <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm space-y-3">
+              <div class="flex items-center justify-between pb-2 border-b border-slate-100">
+                <div class="flex items-center space-x-2">
+                  <i class="fa-solid fa-person-walking text-emerald-500"></i>
+                  <h4 class="font-bold text-slate-900 text-sm">Estilo de Vida & Hábitos</h4>
+                </div>
+                <span class="text-xs text-slate-400 font-mono">P_SLQ + P_PAQ + P_ALQ</span>
+              </div>
+
+              <div class="space-y-2.5 text-xs">
+                <div class="flex items-center justify-between p-2 rounded bg-slate-50">
+                  <span class="text-slate-600"><i class="fa-solid fa-bed mr-1 text-indigo-500"></i> Horas de Sono:</span>
+                  <span class="font-bold text-slate-900">${p.lifestyle.sleep_hours ? `${p.lifestyle.sleep_hours}h por noite` : 'Não informado'}</span>
+                </div>
+                <div class="flex items-center justify-between p-2 rounded bg-slate-50">
+                  <span class="text-slate-600"><i class="fa-solid fa-couch mr-1 text-amber-500"></i> Tempo Sentado (Sedentarismo):</span>
+                  <span class="font-bold text-slate-900">${p.lifestyle.sedentary_minutes_day ? `${p.lifestyle.sedentary_minutes_day} min/dia` : 'Não informado'}</span>
+                </div>
+                <div class="flex items-center justify-between p-2 rounded bg-slate-50">
+                  <span class="text-slate-600"><i class="fa-solid fa-dumbbell mr-1 text-sky-500"></i> Exercício Vigoroso no Lazer:</span>
+                  <span class="font-bold text-slate-900">${p.lifestyle.vigorous_recreation}</span>
+                </div>
+                <div class="flex items-center justify-between p-2 rounded bg-slate-50">
+                  <span class="text-slate-600"><i class="fa-solid fa-wine-glass mr-1 text-purple-500"></i> Frequência de Álcool:</span>
+                  <span class="font-bold text-slate-900">${p.lifestyle.alcohol_frequency}</span>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      `;
+    }
+
+    // 4. Bivariate / Correlation API & Rendering
+    function setCorrelationVars(x, y) {
+      document.getElementById("corr-var-x").value = x;
+      document.getElementById("corr-var-y").value = y;
+      loadCorrelationChart();
+    }
+
+    async function loadCorrelationChart() {
+      const varX = document.getElementById("corr-var-x").value;
+      const varY = document.getElementById("corr-var-y").value;
+
+      try {
+        const res = await fetch(`/api/correlations?var_x=${varX}&var_y=${varY}`);
+        const data = await res.json();
+
+        if (data.error) {
+          alert(data.error);
+          return;
+        }
+
+        // Stats
+        document.getElementById("stat-pearson-r").innerText = data.correlation_r;
+        document.getElementById("stat-paired-samples").innerText = Number(data.sample_count).toLocaleString("pt-BR");
+        
+        let rDesc = "Correlação neutra / quase nula";
+        if (data.correlation_r > 0.5) rDesc = "Forte correlação positiva";
+        else if (data.correlation_r > 0.2) rDesc = "Correlação positiva moderada";
+        else if (data.correlation_r < -0.5) rDesc = "Forte correlação inversa/negativa";
+        else if (data.correlation_r < -0.2) rDesc = "Correlação inversa moderada";
+        document.getElementById("stat-pearson-desc").innerText = rDesc;
+
+        document.getElementById("corr-chart-title").innerText = `Dispersão: ${varX} vs ${varY} (Amostra de ${data.points.length} indivíduos)`;
+
+        renderScatterPlot(data);
+      } catch (err) {
+        console.error("Erro ao carregar gráfico de correlação:", err);
+      }
+    }
+
+    function renderScatterPlot(data) {
+      const ctx = document.getElementById("chart-correlation-scatter").getContext("2d");
+
+      const malePoints = data.points.filter(p => p.gender === "Masculino");
+      const femalePoints = data.points.filter(p => p.gender === "Feminino");
+
+      if (scatterChartInstance) scatterChartInstance.destroy();
+      scatterChartInstance = new Chart(ctx, {
+        type: "scatter",
+        data: {
+          datasets: [
+            {
+              label: "Homens",
+              data: malePoints.map(p => ({ x: p.x, y: p.y, seqn: p.seqn })),
+              backgroundColor: "rgba(59, 130, 246, 0.45)",
+              borderColor: "#3b82f6",
+              pointRadius: 3
+            },
+            {
+              label: "Mulheres",
+              data: femalePoints.map(p => ({ x: p.x, y: p.y, seqn: p.seqn })),
+              backgroundColor: "rgba(236, 72, 153, 0.45)",
+              borderColor: "#ec4899",
+              pointRadius: 3
+            },
+            {
+              label: "Linha de Tendência",
+              data: data.trendline,
+              type: "line",
+              borderColor: "#ef4444",
+              borderWidth: 2,
+              fill: false,
+              pointRadius: 0
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            tooltip: {
+              callbacks: {
+                label: function(ctx) {
+                  const raw = ctx.raw;
+                  if (raw.seqn) {
+                    return `ID ${raw.seqn}: X=${raw.x}, Y=${raw.y}`;
+                  }
+                  return `Tendência: (${raw.x}, ${raw.y})`;
+                }
+              }
+            }
+          },
+          scales: {
+            x: {
+              title: { display: true, text: data.var_x, font: { weight: 'bold' } },
+              grid: { color: "#f8fafc" }
+            },
+            y: {
+              title: { display: true, text: data.var_y, font: { weight: 'bold' } },
+              grid: { color: "#f8fafc" }
+            }
+          }
+        }
+      });
+    }
+
+    // 5. Codebook API & Rendering
+    async function loadCodebook() {
+      try {
+        const res = await fetch("/api/codebook");
+        allCodebookData = await res.json();
+        renderCodebookTable(allCodebookData);
+      } catch (err) {
+        console.error("Erro ao carregar dicionário de variáveis:", err);
+      }
+    }
+
+    function inspectTableCodebook(tname) {
+      switchTab("codebook");
+      document.getElementById("codebook-table-filter").value = tname;
+      filterCodebook();
+    }
+
+    function filterCodebook() {
+      const search = document.getElementById("codebook-search").value.toLowerCase().trim();
+      const tableFilter = document.getElementById("codebook-table-filter").value;
+
+      const filtered = allCodebookData.filter(item => {
+        const matchesTable = (tableFilter === "all" || item.table === tableFilter);
+        const matchesSearch = (!search || item.column.toLowerCase().includes(search) || item.label.toLowerCase().includes(search));
+        return matchesTable && matchesSearch;
+      });
+
+      renderCodebookTable(filtered);
+    }
+
+    function renderCodebookTable(items) {
+      const tbody = document.getElementById("codebook-tbody");
+      tbody.innerHTML = "";
+
+      if (items.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" class="px-4 py-8 text-center text-slate-400">Nenhuma variável correspondente.</td></tr>`;
+        return;
+      }
+
+      items.forEach(c => {
+        const tr = document.createElement("tr");
+        tr.className = "hover:bg-slate-50 transition-colors";
+        tr.innerHTML = `
+          <td class="px-4 py-2.5 font-mono font-bold text-indigo-700">${c.column}</td>
+          <td class="px-4 py-2.5 text-slate-800 font-medium">${c.label}</td>
+          <td class="px-4 py-2.5 font-mono text-slate-600">${c.table}.xpt</td>
+          <td class="px-4 py-2.5"><span class="px-2 py-0.5 rounded text-[11px] font-semibold bg-slate-100 text-slate-700">${c.table_category}</span></td>
+          <td class="px-4 py-2.5 text-right font-mono text-slate-700">${Number(c.non_null_count).toLocaleString("pt-BR")}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+    let currentMlMode = "anchored";
+    let hormoneInsightsData = null;
+    let anchoredInsightsData = null;
+
+    async function setMlMode(mode) {
+      currentMlMode = mode;
+      const buttons = [
+        document.getElementById("btn-mode-anchored"),
+        document.getElementById("btn-mode-metabolic"),
+        document.getElementById("btn-mode-apnea"),
+        document.getElementById("btn-mode-inflammatory")
+      ];
+
+      buttons.forEach(b => {
+        if (b) b.className = "px-3 py-2 rounded-lg text-xs font-bold transition-all text-slate-300 hover:text-white";
+      });
+
+      const regSec = document.getElementById("ml-regression-table-section");
+      const titleEl = document.getElementById("ml-reg-table-title");
+      const subEl = document.getElementById("ml-reg-table-subtitle");
+
+      if (mode === "metabolic") {
+        const btn = document.getElementById("btn-mode-metabolic");
+        if (btn) btn.className = "px-3 py-2 rounded-lg text-xs font-bold transition-all bg-indigo-500 text-white shadow";
+        document.getElementById("ml-cohort-badge").innerText = "Modelo 1 Ativo: Eixo Metabólico (Sono + Atividade + Pulso -> Glicose / HbA1c)";
+        document.getElementById("ml-main-title").innerText = "Modelo 1: Eixo Metabólico (Rastreio Não-Invasivo de Glicose & HbA1c)";
+        document.getElementById("ml-main-desc").innerText = "Estima a probabilidade de alteração em Glicemia e HbA1c a partir da duração do sono (P_SLQ), minutos de atividade física/sedentarismo (P_PAQ), pulso em repouso (P_BPXO), IMC (P_BMX), idade e sexo (P_DEMO). Em produção, o smartwatch envia sleep_duration_hours, workout_minutes e resting_hr_bpm.";
+        if (regSec) regSec.classList.remove("hidden");
+        if (titleEl) titleEl.innerHTML = '<i class="fa-solid fa-bolt text-amber-500 mr-2"></i>Tabela de Regressão Logística: Risco de HbA1c e Glicose Alteradas';
+        if (subEl) subEl.innerText = "Coorte NHANES 2017-2020: Impacto do sono protetor (OR = 0,955/h) vs sobrecarga do IMC (OR = 1,080/ponto) com acurácia global de 88,7%";
+        loadMetabolicInsights();
+      } else if (mode === "apnea") {
+        const btn = document.getElementById("btn-mode-apnea");
+        if (btn) btn.className = "px-3 py-2 rounded-lg text-xs font-bold transition-all bg-indigo-500 text-white shadow";
+        document.getElementById("ml-cohort-badge").innerText = "Modelo 2 Ativo: Apneia / Hipóxia Noturna (Hematócrito + IMC + Sono)";
+        document.getElementById("ml-main-title").innerText = "Modelo 2: Apneia do Sono & Hipóxia Noturna Compensatória";
+        document.getElementById("ml-main-desc").innerText = "Identifica risco de distúrbio respiratório do sono (apneia) cruzando o hemograma (Hematócrito, Hemácias, Hemoglobina de P_CBC) com IMC, pressão arterial, idade e respostas de ronco/pausas respiratórias no P_SLQ. Reforçado diretamente pela SpO2 noturna e fragmentação do sono do wearable.";
+        if (regSec) regSec.classList.remove("hidden");
+        if (titleEl) titleEl.innerHTML = '<i class="fa-solid fa-lungs text-sky-500 mr-2"></i>Tabela de Regressão: Predição de Risco de Apneia por Hemograma e Biometria';
+        if (subEl) subEl.innerText = "Coorte de 7.268 Participantes: Mecanismo compensatório de policitemia secundária (Hct/RBC) e sobrecarga anatômica (IMC OR = 1,056)";
+        loadApneaInsights();
+      } else if (mode === "inflammatory") {
+        const btn = document.getElementById("btn-mode-inflammatory");
+        if (btn) btn.className = "px-3 py-2 rounded-lg text-xs font-bold transition-all bg-indigo-500 text-white shadow";
+        document.getElementById("ml-cohort-badge").innerText = "Modelo 3 Ativo: Inflamatório & Autonômico (PCR + Leucócitos -> Pulso e Pressão)";
+        document.getElementById("ml-main-title").innerText = "Modelo 3: Sobrecarga Inflamatória e Tônus Autonômico (PCR-us & Leucócitos)";
+        document.getElementById("ml-main-desc").innerText = "Estima o quanto um quadro inflamatório sistêmico eleva o pulso em repouso e a pressão arterial sistólica/diastólica esperados (P_HSCRP, Leucócitos e Neutrófilos de P_CBC). Serve de base para validar desvios basais de resting_hr_bpm, sbp_mmHg e queda de hrv_rmssd_ms no wearable.";
+        if (regSec) regSec.classList.remove("hidden");
+        if (titleEl) titleEl.innerHTML = '<i class="fa-solid fa-fire text-rose-500 mr-2"></i>Tabela OLS Multivariada: Impacto da PCR e Neutrófilos na Frequência Cardíaca';
+        if (subEl) subEl.innerText = "Coorte de 8.341 Participantes com PCR ultrassensível: Aceleração sinusal direta de +0,37 bpm por mg/L de PCR e +1,29 bpm por 1.000 neutrófilos";
+        loadInflammatoryInsights();
+      } else {
+        const btn = document.getElementById("btn-mode-anchored");
+        if (btn) btn.className = "px-3 py-2 rounded-lg text-xs font-bold transition-all bg-indigo-500 text-white shadow";
+        document.getElementById("ml-cohort-badge").innerText = "Modelo Ancorado em 3.816 Pessoas Saudáveis (R² = 0.875 | MAE = 2.95 bpm)";
+        document.getElementById("ml-main-title").innerText = "Preditor Autonômico Ancorado: Da 1ª Leitura / Wearable para o Repouso Ideal";
+        document.getElementById("ml-main-desc").innerText = "Utiliza a 1ª medição de pulso ou a média diurna do smartwatch ancorada nos exames de sangue para prever a verdadeira FC basal de repouso, medindo a capacidade de acomodação vagal.";
+        if (regSec) regSec.classList.remove("hidden");
+        if (titleEl) titleEl.innerHTML = '<i class="fa-solid fa-square-root-variable text-indigo-600 mr-2"></i>Tabela de Regressão OLS: Preditor Autonômico Ancorado em Saudáveis';
+        if (subEl) subEl.innerText = "Coorte de 3.816 Indivíduos Estritamente Saudáveis: Efeito conjunto da Leitura Inicial/Wearable, Demografia e Hemograma";
+        loadAnchoredInsights();
+      }
+    }
+
+    function updateBenchmarkCards(cards) {
+      for (let i = 0; i < 4; i++) {
+        const c = cards[i];
+        if (!c) continue;
+        const titleEl = document.getElementById(`ml-card-title-${i+1}`);
+        const r2El = document.getElementById(`ml-card-r2-${i+1}`);
+        const maeEl = document.getElementById(`ml-card-mae-${i+1}`);
+        const tagEl = document.getElementById(`ml-card-tag-${i+1}`);
+        if (titleEl) titleEl.innerText = c.title;
+        if (r2El) r2El.innerText = c.r2;
+        if (maeEl) maeEl.innerText = c.sub;
+        if (tagEl) {
+          tagEl.innerText = c.tag;
+          tagEl.className = "inline-block mt-2 text-[10px] px-2 py-0.5 rounded font-bold " + (c.tagClass || "bg-indigo-100 text-indigo-800");
+        }
+      }
+    }
+
+    async function loadAnchoredInsights() {
+      try {
+        const res = await fetch("/api/anchored/insights");
+        const data = await res.json();
+        anchoredInsightsData = data;
+
+        const cards = [
+          { title: "Regressão Linear Ancorada", r2: "R²: 0,874", sub: "MAE: 2,95 bpm | RMSE: 3,89 bpm", tag: "Fidelidade clínica (< 3 bpm)", tagClass: "bg-emerald-100 text-emerald-800" },
+          { title: "Gradient Boosting Ancorado", r2: "R²: 0,862", sub: "MAE: 3,08 bpm | RMSE: 4,05 bpm", tag: "Captura não-linearidade vagal", tagClass: "bg-blue-100 text-blue-800" },
+          { title: "Correlação Entrada vs Repouso", r2: "r: 0,932", sub: "Queda Vagal Média: 1,56 bpm", tag: "Pessoas saudáveis desaceleram", tagClass: "bg-indigo-100 text-indigo-800" },
+          { title: "Calibração Wearable", r2: "Gap: 22,6 bpm", sub: "Correlação Relógio: 0,789", tag: "Vigília vs Sono Profundo", tagClass: "bg-emerald-100 text-emerald-800" }
+        ];
+        updateBenchmarkCards(cards);
+        
+        // Render coefficients or feature importances
+        const feats = [
+          { name: "1ª Marcação de Pulso / Wearable (Ancoragem)", importance_pct: 68.4 },
+          { name: "Idade Cronológica", importance_pct: 8.5 },
+          { name: "Gênero Biológico", importance_pct: 6.2 },
+          { name: "Leucócitos Totais (Inflamação)", importance_pct: 4.8 },
+          { name: "Hemoglobina (Transporte de O2)", importance_pct: 3.5 },
+          { name: "Ferritina Sérica", importance_pct: 3.2 },
+          { name: "Plaquetas (Reatividade)", importance_pct: 2.8 },
+          { name: "RDW / Anisocitose", importance_pct: 2.6 }
+        ];
+        renderMlImportanceChart(feats);
+        renderAnchoredSimulator();
+        if (data.r2_ols !== undefined) {
+          const r2Badge = document.getElementById("ml-reg-r2-badge");
+          if (r2Badge) r2Badge.innerText = `R² = ${data.r2_ols} (${(data.r2_ols * 100).toFixed(1)}%)`;
+        }
+        if (data.f_statistic !== undefined) {
+          const fBadge = document.getElementById("ml-reg-f-badge");
+          if (fBadge) fBadge.innerText = `F = ${data.f_statistic} (${data.f_pvalue || "p < 0.0001"})`;
+        }
+        if (data.regression_table) {
+          renderRegressionTable(data.regression_table);
+        }
+      } catch (err) {
+        console.error("Erro ao carregar modelo ancorado:", err);
+      }
+    }
+
+    function renderAnchoredSimulator() {
+      const container = document.getElementById("sim-controls-grid");
+      if (!container) return;
+
+      container.innerHTML = `
+        <!-- Device Mode Selection -->
+        <div class="col-span-2 bg-gradient-to-r from-indigo-50 to-sky-50 p-3 rounded-xl border border-indigo-200 flex flex-wrap items-center justify-between gap-2">
+          <div class="flex items-center space-x-2">
+            <span class="text-xs font-bold text-indigo-900">Origem da Marcação de Entrada:</span>
+            <select id="anc-input-mode" onchange="runAnchoredSimulation()" class="text-xs font-semibold rounded-lg border-indigo-300 bg-white p-1.5 border text-indigo-900">
+              <option value="clinical">Consultório Clínico (1ª Leitura &rarr; 3ª Leitura)</option>
+              <option value="wearable">Wearable / Smartwatch (Média Diurna &rarr; Sono Profundo)</option>
+            </select>
+          </div>
+          <span class="text-[11px] font-medium text-indigo-700"><i class="fa-solid fa-circle-check text-emerald-600 mr-1"></i> Treinado estritamente em pessoas saudáveis</span>
+        </div>
+
+        <!-- Initial HR Input -->
+        <div class="col-span-2 bg-indigo-50/70 p-3 rounded-lg border border-indigo-200">
+          <div class="flex justify-between mb-1">
+            <span id="anc-label-entry" class="font-bold text-indigo-950 text-xs">1ª Leitura de Pulso (Consultório)</span>
+            <span id="anc-val-entry" class="font-mono font-extrabold text-indigo-700 text-sm">82 bpm</span>
+          </div>
+          <input type="range" id="anc-input-entry" min="50" max="115" step="1" value="82" oninput="runAnchoredSimulation()" class="w-full accent-indigo-600">
+          <p id="anc-help-entry" class="text-[10px] text-indigo-700 mt-1">Ponto de partida ancorado antes do relaxamento homeostático.</p>
+        </div>
+
+        <!-- Hemoglobin -->
+        <div class="bg-slate-50 p-2.5 rounded-lg border border-slate-200">
+          <div class="flex justify-between mb-1">
+            <span class="font-semibold text-slate-700">Hemoglobina (Hb)</span>
+            <span id="anc-val-hgb" class="font-mono font-bold text-indigo-700">14.2 g/dL</span>
+          </div>
+          <input type="range" id="anc-input-hgb" min="9.0" max="18.0" step="0.1" value="14.2" oninput="runAnchoredSimulation()" class="w-full accent-indigo-600">
+        </div>
+
+        <!-- Ferritin -->
+        <div class="bg-slate-50 p-2.5 rounded-lg border border-slate-200">
+          <div class="flex justify-between mb-1">
+            <span class="font-semibold text-slate-700">Ferritina Sérica</span>
+            <span id="anc-val-fer" class="font-mono font-bold text-indigo-700">110 ng/mL</span>
+          </div>
+          <input type="range" id="anc-input-fer" min="10" max="400" step="5" value="110" oninput="runAnchoredSimulation()" class="w-full accent-indigo-600">
+        </div>
+
+        <!-- WBC Leucócitos -->
+        <div class="bg-slate-50 p-2.5 rounded-lg border border-slate-200">
+          <div class="flex justify-between mb-1">
+            <span class="font-semibold text-slate-700">Leucócitos Totais</span>
+            <span id="anc-val-wbc" class="font-mono font-bold text-indigo-700">6.8 10³/µL</span>
+          </div>
+          <input type="range" id="anc-input-wbc" min="3.0" max="14.0" step="0.2" value="6.8" oninput="runAnchoredSimulation()" class="w-full accent-indigo-600">
+        </div>
+
+        <!-- Age -->
+        <div class="bg-slate-50 p-2.5 rounded-lg border border-slate-200">
+          <div class="flex justify-between mb-1">
+            <span class="font-semibold text-slate-700">Idade Cronológica</span>
+            <span id="anc-val-age" class="font-mono font-bold text-indigo-700">38 anos</span>
+          </div>
+          <input type="range" id="anc-input-age" min="18" max="80" step="1" value="38" oninput="runAnchoredSimulation()" class="w-full accent-indigo-600">
+        </div>
+
+        <!-- User Measured Comparison Card (Autonomic Health Gap) -->
+        <div class="col-span-2 bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-2">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <span class="font-bold text-slate-800 text-xs">Comparar com Medição Real do Usuário (Smartwatch ou 3ª Tomada):</span>
+            <div class="flex items-center space-x-1.5">
+              <input type="number" id="anc-input-actual" placeholder="Ex: 72" value="73" oninput="runAnchoredSimulation()" class="w-20 text-xs font-mono font-bold py-1 px-2 rounded border border-slate-300 text-center">
+              <span class="text-xs text-slate-500 font-semibold">bpm</span>
+            </div>
+          </div>
+          <div id="anc-assessment-box" class="p-2.5 rounded-lg bg-emerald-50 border border-emerald-200 text-xs flex items-center justify-between">
+            <div>
+              <span class="font-bold text-emerald-800" id="anc-assess-status">Recuperação Ótima</span>
+              <p class="text-[11px] text-emerald-700" id="anc-assess-msg">Seu coração atinge o repouso basal dentro da meta fisiológica saudável.</p>
+            </div>
+            <span class="font-mono font-extrabold text-emerald-800 text-sm" id="anc-assess-gap">Gap: 0.0 bpm</span>
+          </div>
+        </div>
+      `;
+      runAnchoredSimulation();
+    }
+
+    async function runAnchoredSimulation() {
+      const mode = document.getElementById("anc-input-mode")?.value || "clinical";
+      const entry = parseFloat(document.getElementById("anc-input-entry")?.value || 82);
+      const hgb = parseFloat(document.getElementById("anc-input-hgb")?.value || 14.2);
+      const fer = parseFloat(document.getElementById("anc-input-fer")?.value || 110);
+      const wbc = parseFloat(document.getElementById("anc-input-wbc")?.value || 6.8);
+      const age = parseFloat(document.getElementById("anc-input-age")?.value || 38);
+      const actual = parseFloat(document.getElementById("anc-input-actual")?.value || 73);
+
+      // Labels
+      if (document.getElementById("anc-val-entry")) document.getElementById("anc-val-entry").innerText = entry.toFixed(0) + " bpm";
+      if (document.getElementById("anc-val-hgb")) document.getElementById("anc-val-hgb").innerText = hgb.toFixed(1) + " g/dL";
+      if (document.getElementById("anc-val-fer")) document.getElementById("anc-val-fer").innerText = fer.toFixed(0) + " ng/mL";
+      if (document.getElementById("anc-val-wbc")) document.getElementById("anc-val-wbc").innerText = wbc.toFixed(1) + " 10³/µL";
+      if (document.getElementById("anc-val-age")) document.getElementById("anc-val-age").innerText = age.toFixed(0) + " anos";
+
+      // Context labels
+      if (mode === "wearable") {
+        document.getElementById("anc-label-entry").innerText = "Média Diurna do Relógio (avg_hr_day)";
+        document.getElementById("anc-help-entry").innerText = "Média de batimentos durante o dia ativo medida pelo sensor PPG do relógio.";
+      } else {
+        document.getElementById("anc-label-entry").innerText = "1ª Leitura de Pulso (Consultório)";
+        document.getElementById("anc-help-entry").innerText = "Ponto de partida aferido antes do repouso prolongado.";
+      }
+
+      const payload = {
+        mode: mode,
+        initial_hr: entry,
+        LBXHGB: hgb,
+        LBXFER: fer,
+        LBXWBCSI: wbc,
+        LBXPLTSI: 230.0,
+        LBXRDW: 12.3,
+        LBXMCVSI: 89.0,
+        RIDAGEYR: age,
+        RIAGENDR: 1.0,
+        actual_measured_hr: actual
+      };
+
+      try {
+        const res = await fetch("/api/anchored/predict", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (data.predicted_resting_hr) {
+          document.getElementById("sim-predicted-pulse").innerText = data.predicted_resting_hr + " bpm";
+        }
+
+        // Assessment Box
+        if (data.assessment) {
+          const ass = data.assessment;
+          const box = document.getElementById("anc-assessment-box");
+          const statusEl = document.getElementById("anc-assess-status");
+          const msgEl = document.getElementById("anc-assess-msg");
+          const gapEl = document.getElementById("anc-assess-gap");
+
+          statusEl.innerText = ass.status;
+          msgEl.innerText = ass.message;
+          gapEl.innerText = (ass.gap > 0 ? "+" : "") + ass.gap + " bpm";
+
+          box.className = "p-2.5 rounded-lg text-xs flex items-center justify-between " + 
+            (ass.badge === "green" ? "bg-emerald-50 border border-emerald-200 text-emerald-800" :
+             (ass.badge === "blue" ? "bg-blue-50 border border-blue-200 text-blue-800" :
+              (ass.badge === "amber" ? "bg-amber-50 border border-amber-200 text-amber-800" : "bg-rose-50 border border-rose-200 text-rose-800")));
+        }
+      } catch (err) {
+        console.error("Erro na predição ancorada:", err);
+      }
+    }
+
+    async function loadHormoneInsights() {
+      try {
+        const res = await fetch("/api/hormones/insights");
+        const data = await res.json();
+        hormoneInsightsData = data;
+
+        const cards = [
+          { title: "Regressão OLS com Hormônios", r2: "R²: 0,119 (11,9%)", sub: "MAE: 8,97 bpm | F = 17,59 (p < 0.0001)", tag: "Saltou de 0,013 para 0,119 (+815%!)", tagClass: "bg-emerald-100 text-emerald-800" },
+          { title: "Random Forest com Hormônios", r2: "R²: 0,112 (11,2%)", sub: "MAE: 8,94 bpm | Testo = 16,2%", tag: "Não-linearidade hormonal", tagClass: "bg-indigo-100 text-indigo-800" },
+          { title: "Gradient Boosting (HistGBM)", r2: "R²: 0,102 (10,2%)", sub: "MAE: 8,99 bpm | RMSE: 11,42 bpm", tag: "Captura limiares de T3 e Testo", tagClass: "bg-purple-100 text-purple-800" },
+          { title: "Regressão Ridge (L2)", r2: "R²: 0,097 (9,7%)", sub: "MAE: 8,96 bpm | RMSE: 11,45 bpm", tag: "Estabiliza colinearidade", tagClass: "bg-blue-100 text-blue-800" }
+        ];
+        updateBenchmarkCards(cards);
+
+        if (data.r2_ols !== undefined) {
+          const r2Badge = document.getElementById("ml-reg-r2-badge");
+          if (r2Badge) r2Badge.innerText = `R² = ${data.r2_ols} (${(data.r2_ols * 100).toFixed(1)}%)`;
+        }
+        if (data.f_statistic !== undefined) {
+          const fBadge = document.getElementById("ml-reg-f-badge");
+          if (fBadge) fBadge.innerText = `F = ${data.f_statistic} (${data.f_pvalue || "p < 0.0001"})`;
+        }
+
+        renderMlImportanceChart(data.feature_importance);
+        renderHormoneSimulator();
+        renderRegressionTable(data.regression_table);
+      } catch (err) {
+        console.error("Erro ao carregar insights de hormônios:", err);
+      }
+    }
+
+    function renderRegressionTable(rows) {
+      const tbody = document.getElementById("ml-regression-tbody");
+      if (!tbody) return;
+
+      if (!rows || rows.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" class="px-4 py-6 text-center text-slate-400">Nenhum dado de regressão disponível.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = rows.map(r => {
+        let catBadge = "bg-slate-100 text-slate-700";
+        if (r.category === "Tireoide") catBadge = "bg-amber-100 text-amber-800 border border-amber-200";
+        else if (r.category === "Eixo Gonadal") catBadge = "bg-purple-100 text-purple-800 border border-purple-200";
+        else if (r.category === "Hematologia") catBadge = "bg-rose-50 text-rose-700 border border-rose-200";
+        else if (r.category === "Biometria" || r.category === "Sinal Vital / Wearable") catBadge = "bg-sky-50 text-sky-700 border border-sky-200";
+        else if (r.category === "Demografia") catBadge = "bg-slate-100 text-slate-700";
+
+        let sigBadge = "bg-slate-100 text-slate-600";
+        if (r.sig_stars === "***") sigBadge = "bg-emerald-100 text-emerald-800 font-bold border border-emerald-300";
+        else if (r.sig_stars === "**") sigBadge = "bg-emerald-50 text-emerald-700 font-semibold border border-emerald-200";
+        else if (r.sig_stars === "*") sigBadge = "bg-indigo-50 text-indigo-700 border border-indigo-200";
+
+        const isOdds = (r.odds_ratio !== undefined);
+        const colVal = isOdds ? `OR: ${r.odds_ratio}` : ((Number(r.coef) > 0 ? "+" : "") + Number(r.coef).toFixed(4));
+        const colErr = isOdds ? `IC 95%: [${r.ci_low} - ${r.ci_high}]` : (r.stderr !== undefined ? Number(r.stderr).toFixed(4) : "--");
+        const valColor = isOdds ? (r.odds_ratio > 1.05 ? "text-rose-600 font-bold" : (r.odds_ratio < 0.98 ? "text-emerald-600 font-bold" : "text-slate-800 font-semibold")) :
+                                 (Math.abs(Number(r.coef)) >= 0.5 ? (Number(r.coef) > 0 ? "text-rose-600 font-bold" : "text-emerald-600 font-bold") : "text-slate-800 font-semibold");
+
+        return `
+          <tr class="hover:bg-indigo-50/30 transition-colors">
+            <td class="px-3 py-2.5 font-medium text-slate-900">
+              ${r.name}
+              <span class="block text-[10px] font-mono text-slate-400">${r.feature}</span>
+            </td>
+            <td class="px-3 py-2.5 whitespace-nowrap">
+              <span class="text-[10px] px-2 py-0.5 rounded-full font-bold ${catBadge}">${r.category || (isOdds ? "Fator de Risco" : "Biomarcador")}</span>
+            </td>
+            <td class="px-3 py-2.5 text-right font-mono text-xs ${valColor}">
+              ${colVal}
+            </td>
+            <td class="px-3 py-2.5 text-right font-mono text-xs text-slate-500 whitespace-nowrap">
+              ${colErr}
+            </td>
+            <td class="px-3 py-2.5 text-right font-mono text-xs text-slate-700 font-semibold">
+              ${r.pval}
+            </td>
+            <td class="px-3 py-2.5 text-center whitespace-nowrap">
+              <span class="text-[10px] px-2 py-0.5 rounded font-mono ${sigBadge}">${r.sig_stars || "ns"}</span>
+            </td>
+            <td class="px-4 py-2.5 text-xs text-slate-600 leading-relaxed">
+              ${r.interpretation}
+            </td>
+          </tr>
+        `;
+      }).join("");
+    }
+
+    function renderHormoneSimulator() {
+      const container = document.getElementById("sim-controls-grid");
+      if (!container) return;
+
+      container.innerHTML = `
+        <!-- Free T3 -->
+        <div class="bg-indigo-50/50 p-2.5 rounded-lg border border-indigo-200">
+          <div class="flex justify-between mb-1">
+            <span class="font-bold text-indigo-900">T3 Livre (Hormônio Ativo)</span>
+            <span id="sim-val-t3" class="font-mono font-bold text-indigo-700">3.20 pg/mL</span>
+          </div>
+          <input type="range" id="sim-input-t3" min="1.8" max="5.5" step="0.05" value="3.20" oninput="runHormoneSimulation()" class="w-full accent-indigo-600">
+          <span class="text-[10px] text-indigo-600 font-medium">+2.37 bpm a cada +1 pg/mL (p = 0.001)</span>
+        </div>
+
+        <!-- Total Testosterone -->
+        <div class="bg-indigo-50/50 p-2.5 rounded-lg border border-indigo-200">
+          <div class="flex justify-between mb-1">
+            <span class="font-bold text-indigo-900">Testosterona Total</span>
+            <span id="sim-val-tst" class="font-mono font-bold text-indigo-700">380 ng/dL</span>
+          </div>
+          <input type="range" id="sim-input-tst" min="10" max="1000" step="10" value="380" oninput="runHormoneSimulation()" class="w-full accent-indigo-600">
+          <span class="text-[10px] text-indigo-600 font-medium">16.15% de importância | p < 0.00001</span>
+        </div>
+
+        <!-- TSH -->
+        <div class="bg-slate-50 p-2.5 rounded-lg border border-slate-200">
+          <div class="flex justify-between mb-1">
+            <span class="font-semibold text-slate-700">TSH (Tireoestimulante)</span>
+            <span id="sim-val-tsh" class="font-mono font-bold text-indigo-700">1.65 µIU/mL</span>
+          </div>
+          <input type="range" id="sim-input-tsh" min="0.1" max="8.0" step="0.1" value="1.65" oninput="runHormoneSimulation()" class="w-full accent-indigo-600">
+        </div>
+
+        <!-- Free T4 -->
+        <div class="bg-slate-50 p-2.5 rounded-lg border border-slate-200">
+          <div class="flex justify-between mb-1">
+            <span class="font-semibold text-slate-700">T4 Livre</span>
+            <span id="sim-val-t4" class="font-mono font-bold text-indigo-700">0.80 ng/dL</span>
+          </div>
+          <input type="range" id="sim-input-t4" min="0.4" max="2.0" step="0.05" value="0.80" oninput="runHormoneSimulation()" class="w-full accent-indigo-600">
+        </div>
+
+        <!-- WBC Leucócitos -->
+        <div class="bg-slate-50 p-2.5 rounded-lg border border-slate-200">
+          <div class="flex justify-between mb-1">
+            <span class="font-semibold text-slate-700">Leucócitos Totais</span>
+            <span id="sim-val-wbc" class="font-mono font-bold text-indigo-700">7.1 10³/µL</span>
+          </div>
+          <input type="range" id="sim-input-wbc" min="2.5" max="16.0" step="0.2" value="7.1" oninput="runHormoneSimulation()" class="w-full accent-indigo-600">
+        </div>
+
+        <!-- Hemoglobin -->
+        <div class="bg-slate-50 p-2.5 rounded-lg border border-slate-200">
+          <div class="flex justify-between mb-1">
+            <span class="font-semibold text-slate-700">Hemoglobina (Hb)</span>
+            <span id="sim-val-hgb" class="font-mono font-bold text-indigo-700">14.2 g/dL</span>
+          </div>
+          <input type="range" id="sim-input-hgb" min="8.0" max="18.5" step="0.1" value="14.2" oninput="runHormoneSimulation()" class="w-full accent-indigo-600">
+        </div>
+
+        <!-- BMI -->
+        <div class="bg-slate-50 p-2.5 rounded-lg border border-slate-200">
+          <div class="flex justify-between mb-1">
+            <span class="font-semibold text-slate-700">IMC (Índice de Massa Corporal)</span>
+            <span id="sim-val-bmi" class="font-mono font-bold text-indigo-700">26.5 kg/m²</span>
+          </div>
+          <input type="range" id="sim-input-bmi" min="16.0" max="45.0" step="0.5" value="26.5" oninput="runHormoneSimulation()" class="w-full accent-indigo-600">
+        </div>
+
+        <!-- Age -->
+        <div class="bg-slate-50 p-2.5 rounded-lg border border-slate-200">
+          <div class="flex justify-between mb-1">
+            <span class="font-semibold text-slate-700">Idade Cronológica</span>
+            <span id="sim-val-age" class="font-mono font-bold text-indigo-700">45 anos</span>
+          </div>
+          <input type="range" id="sim-input-age" min="18" max="80" step="1" value="45" oninput="runHormoneSimulation()" class="w-full accent-indigo-600">
+        </div>
+      `;
+      runHormoneSimulation();
+    }
+
+    async function runHormoneSimulation() {
+      const t3 = parseFloat(document.getElementById("sim-input-t3")?.value || 3.2);
+      const tst = parseFloat(document.getElementById("sim-input-tst")?.value || 380);
+      const tsh = parseFloat(document.getElementById("sim-input-tsh")?.value || 1.65);
+      const t4 = parseFloat(document.getElementById("sim-input-t4")?.value || 0.8);
+      const wbc = parseFloat(document.getElementById("sim-input-wbc")?.value || 7.1);
+      const hgb = parseFloat(document.getElementById("sim-input-hgb")?.value || 14.2);
+      const bmi = parseFloat(document.getElementById("sim-input-bmi")?.value || 26.5);
+      const age = parseFloat(document.getElementById("sim-input-age")?.value || 45);
+
+      if (document.getElementById("sim-val-t3")) document.getElementById("sim-val-t3").innerText = t3.toFixed(2) + " pg/mL";
+      if (document.getElementById("sim-val-tst")) document.getElementById("sim-val-tst").innerText = tst.toFixed(0) + " ng/dL";
+      if (document.getElementById("sim-val-tsh")) document.getElementById("sim-val-tsh").innerText = tsh.toFixed(2) + " µIU/mL";
+      if (document.getElementById("sim-val-t4")) document.getElementById("sim-val-t4").innerText = t4.toFixed(2) + " ng/dL";
+      if (document.getElementById("sim-val-wbc")) document.getElementById("sim-val-wbc").innerText = wbc.toFixed(1) + " 10³/µL";
+      if (document.getElementById("sim-val-hgb")) document.getElementById("sim-val-hgb").innerText = hgb.toFixed(1) + " g/dL";
+      if (document.getElementById("sim-val-bmi")) document.getElementById("sim-val-bmi").innerText = bmi.toFixed(1) + " kg/m²";
+      if (document.getElementById("sim-val-age")) document.getElementById("sim-val-age").innerText = age.toFixed(0) + " anos";
+
+      const payload = {
+        LBXT3F: t3,
+        LBXTST: tst,
+        LBXTSH1: tsh,
+        LBXT4F: t4,
+        LBXWBCSI: wbc,
+        LBXHGB: hgb,
+        LBXHCT: hgb * 3.0,
+        LBXRBCSI: (hgb / 3.0).toFixed(2),
+        LBXMCVSI: 89.0,
+        LBXRDW: 12.5,
+        LBXPLTSI: 235.0,
+        RIDAGEYR: age,
+        RIAGENDR: 1.0,
+        BMXBMI: bmi
+      };
+
+      try {
+        const res = await fetch("/api/hormones/predict", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (data.predicted_pulse) {
+          document.getElementById("sim-predicted-pulse").innerText = data.predicted_pulse + " bpm";
+        }
+      } catch (err) {
+        console.error("Erro na simulação de hormônios:", err);
+      }
+    }
+
+    async function loadMlInsights() {
+      try {
+        const res = await fetch("/api/ml/insights");
+        const data = await res.json();
+        mlInsightsData = data;
+
+        const cards = [
+          { title: "Regressão Linear (OLS)", r2: "R²: 0,013", sub: "MAE: 8,78 bpm | RMSE: 11,53 bpm", tag: "Sofre com multicolinearidade", tagClass: "bg-slate-100 text-slate-700" },
+          { title: "Regressão Ridge (L2)", r2: "R²: 0,014", sub: "MAE: 8,78 bpm | RMSE: 11,53 bpm", tag: "Estabiliza Hb vs Hct", tagClass: "bg-blue-100 text-blue-800" },
+          { title: "Random Forest Regressor", r2: "R²: 0,099", sub: "MAE: 8,68 bpm | RMSE: 11,04 bpm", tag: "~8x mais variância explicada", tagClass: "bg-indigo-100 text-indigo-800" },
+          { title: "Gradient Boosting (HistGBM)", r2: "R²: 0,098", sub: "MAE: 8,66 bpm | Menor Erro Absoluto", tag: "Melhor acurácia pontual", tagClass: "bg-emerald-100 text-emerald-800" }
+        ];
+        updateBenchmarkCards(cards);
+
+        renderMlImportanceChart(data.feature_importance);
+        renderHemogramSimulator();
+      } catch (err) {
+        console.error("Erro ao carregar insights de ML:", err);
+      }
+    }
+
+    function renderHemogramSimulator() {
+      const container = document.getElementById("sim-controls-grid");
+      if (!container) return;
+
+      container.innerHTML = `
+        <!-- Hemoglobin -->
+        <div class="bg-slate-50 p-2.5 rounded-lg border border-slate-200">
+          <div class="flex justify-between mb-1">
+            <span class="font-semibold text-slate-700">Hemoglobina (Hb)</span>
+            <span id="sim-val-hgb" class="font-mono font-bold text-indigo-700">14.2 g/dL</span>
+          </div>
+          <input type="range" id="sim-input-hgb" min="8.0" max="18.5" step="0.1" value="14.2" oninput="runMlSimulation()" class="w-full accent-indigo-600">
+        </div>
+
+        <!-- Ferritin -->
+        <div class="bg-slate-50 p-2.5 rounded-lg border border-slate-200">
+          <div class="flex justify-between mb-1">
+            <span class="font-semibold text-slate-700">Ferritina Sérica</span>
+            <span id="sim-val-fer" class="font-mono font-bold text-indigo-700">105 ng/mL</span>
+          </div>
+          <input type="range" id="sim-input-fer" min="5" max="500" step="5" value="105" oninput="runMlSimulation()" class="w-full accent-indigo-600">
+        </div>
+
+        <!-- WBC Leucócitos -->
+        <div class="bg-slate-50 p-2.5 rounded-lg border border-slate-200">
+          <div class="flex justify-between mb-1">
+            <span class="font-semibold text-slate-700">Leucócitos Totais</span>
+            <span id="sim-val-wbc" class="font-mono font-bold text-indigo-700">7.1 10³/µL</span>
+          </div>
+          <input type="range" id="sim-input-wbc" min="2.5" max="16.0" step="0.2" value="7.1" oninput="runMlSimulation()" class="w-full accent-indigo-600">
+        </div>
+
+        <!-- Platelets Plaquetas -->
+        <div class="bg-slate-50 p-2.5 rounded-lg border border-slate-200">
+          <div class="flex justify-between mb-1">
+            <span class="font-semibold text-slate-700">Plaquetas</span>
+            <span id="sim-val-plt" class="font-mono font-bold text-indigo-700">238 10³/µL</span>
+          </div>
+          <input type="range" id="sim-input-plt" min="100" max="500" step="5" value="238" oninput="runMlSimulation()" class="w-full accent-indigo-600">
+        </div>
+
+        <!-- RDW -->
+        <div class="bg-slate-50 p-2.5 rounded-lg border border-slate-200">
+          <div class="flex justify-between mb-1">
+            <span class="font-semibold text-slate-700">RDW (Anisocitose)</span>
+            <span id="sim-val-rdw" class="font-mono font-bold text-indigo-700">12.5%</span>
+          </div>
+          <input type="range" id="sim-input-rdw" min="11.0" max="18.0" step="0.1" value="12.5" oninput="runMlSimulation()" class="w-full accent-indigo-600">
+        </div>
+
+        <!-- Age -->
+        <div class="bg-slate-50 p-2.5 rounded-lg border border-slate-200">
+          <div class="flex justify-between mb-1">
+            <span class="font-semibold text-slate-700">Idade Cronológica</span>
+            <span id="sim-val-age" class="font-mono font-bold text-indigo-700">45 anos</span>
+          </div>
+          <input type="range" id="sim-input-age" min="18" max="80" step="1" value="45" oninput="runMlSimulation()" class="w-full accent-indigo-600">
+        </div>
+
+        <!-- Gender -->
+        <div class="bg-slate-50 p-2.5 rounded-lg border border-slate-200">
+          <span class="font-semibold text-slate-700 block mb-1">Gênero Biológico</span>
+          <div class="flex space-x-3 pt-1">
+            <label class="inline-flex items-center cursor-pointer">
+              <input type="radio" name="sim-gender" value="1.0" checked onchange="runMlSimulation()" class="text-indigo-600">
+              <span class="ml-1 text-slate-700">Homem</span>
+            </label>
+            <label class="inline-flex items-center cursor-pointer">
+              <input type="radio" name="sim-gender" value="2.0" onchange="runMlSimulation()" class="text-indigo-600">
+              <span class="ml-1 text-slate-700">Mulher</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Sedentarism -->
+        <div class="bg-slate-50 p-2.5 rounded-lg border border-slate-200">
+          <div class="flex justify-between mb-1">
+            <span class="font-semibold text-slate-700">Tempo Sentado / Dia</span>
+            <span id="sim-val-pad" class="font-mono font-bold text-indigo-700">360 min</span>
+          </div>
+          <input type="range" id="sim-input-pad" min="60" max="720" step="30" value="360" oninput="runMlSimulation()" class="w-full accent-indigo-600">
+        </div>
+      `;
+      runMlSimulation();
+    }
+
+    async function runMlSimulation() {
+      const hgb = parseFloat(document.getElementById("sim-input-hgb")?.value || 14.2);
+      const fer = parseFloat(document.getElementById("sim-input-fer")?.value || 105);
+      const wbc = parseFloat(document.getElementById("sim-input-wbc")?.value || 7.1);
+      const plt = parseFloat(document.getElementById("sim-input-plt")?.value || 238);
+      const rdw = parseFloat(document.getElementById("sim-input-rdw")?.value || 12.5);
+      const age = parseFloat(document.getElementById("sim-input-age")?.value || 45);
+      const gender = parseFloat(document.querySelector("input[name='sim-gender']:checked")?.value || 1.0);
+      const pad = parseFloat(document.getElementById("sim-input-pad")?.value || 360);
+
+      if (document.getElementById("sim-val-hgb")) document.getElementById("sim-val-hgb").innerText = hgb.toFixed(1) + " g/dL";
+      if (document.getElementById("sim-val-fer")) document.getElementById("sim-val-fer").innerText = fer.toFixed(0) + " ng/mL";
+      if (document.getElementById("sim-val-wbc")) document.getElementById("sim-val-wbc").innerText = wbc.toFixed(1) + " 10³/µL";
+      if (document.getElementById("sim-val-plt")) document.getElementById("sim-val-plt").innerText = plt.toFixed(0) + " 10³/µL";
+      if (document.getElementById("sim-val-rdw")) document.getElementById("sim-val-rdw").innerText = rdw.toFixed(1) + "%";
+      if (document.getElementById("sim-val-age")) document.getElementById("sim-val-age").innerText = age.toFixed(0) + " anos";
+      if (document.getElementById("sim-val-pad")) document.getElementById("sim-val-pad").innerText = pad.toFixed(0) + " min";
+
+      const payload = {
+        LBXHGB: hgb,
+        LBXHCT: hgb * 3.0,
+        LBXRBCSI: (hgb / 3.0).toFixed(2),
+        LBXFER: fer,
+        LBXMCVSI: 89.0,
+        LBXMCHSI: 29.5,
+        LBXMC: 33.5,
+        LBXRDW: rdw,
+        LBXWBCSI: wbc,
+        LBXPLTSI: plt,
+        RIDAGEYR: age,
+        RIAGENDR: gender,
+        PAD680: pad
+      };
+
+      try {
+        const res = await fetch("/api/ml/predict", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (data.predicted_pulse) {
+          document.getElementById("sim-predicted-pulse").innerText = data.predicted_pulse + " bpm";
+        }
+      } catch (err) {
+        console.error("Erro na simulação ML:", err);
+      }
+    }
+
+    function renderMlImportanceChart(importances) {
+      const ctx = document.getElementById("chart-ml-importance")?.getContext("2d");
+      if (!ctx) return;
+      const labels = importances.map(i => i.name.split("(")[0].trim());
+      const values = importances.map(i => i.importance_pct);
+
+      if (mlImportanceChartInstance) mlImportanceChartInstance.destroy();
+      mlImportanceChartInstance = new Chart(ctx, {
+        type: "bar",
+        data: {
+          labels: labels,
+          datasets: [{
+            label: "% Importância Relativa",
+            data: values,
+            backgroundColor: values.map((v, i) => i < 2 ? "#4f46e5" : (i < 4 ? "#6366f1" : "#a5b4fc")),
+            borderRadius: 4
+          }]
+        },
+        options: {
+          indexAxis: "y",
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false }
+          },
+          scales: {
+            x: { beginAtZero: true, grid: { color: "#f8fafc" }, ticks: { callback: v => v + "%" } },
+            y: { grid: { display: false }, ticks: { font: { size: 10 } } }
+          }
+        }
+      });
+    }
+
+    function resetSimulator() {
+      if (currentMlMode === "anchored") {
+        renderAnchoredSimulator();
+      } else if (currentMlMode === "hormones") {
+        renderHormoneSimulator();
+      } else {
+        renderHemogramSimulator();
+      }
+    }
+
+    let cardioBloodData = null;
+    let metabolicData = null;
+
+    async function loadCardioBloodInsights() {
+      try {
+        const res = await fetch("/api/screening/cardio_blood/insights");
+        const data = await res.json();
+        cardioBloodData = data;
+
+        updateBenchmarkCards(data.benchmark);
+        renderMlImportanceChart(data.feature_importance);
+
+        if (data.auc_anemia !== undefined) {
+          const r2Badge = document.getElementById("ml-reg-r2-badge");
+          if (r2Badge) r2Badge.innerText = `AUC Anemia = ${data.auc_anemia}`;
+        }
+        if (data.auc_ferritin !== undefined) {
+          const fBadge = document.getElementById("ml-reg-f-badge");
+          if (fBadge) fBadge.innerText = `AUC Ferritina = ${data.auc_ferritin}`;
+        }
+
+        renderRegressionTable(data.anemia_odds_table);
+        renderCardioBloodSimulator();
+      } catch (err) {
+        console.error("Erro ao carregar Modelo 1:", err);
+      }
+    }
+
+    function renderCardioBloodSimulator() {
+      const container = document.getElementById("sim-controls-grid");
+      if (!container) return;
+
+      container.innerHTML = `
+        <!-- Resting Pulse -->
+        <div class="bg-indigo-50/50 p-2.5 rounded-lg border border-indigo-200">
+          <div class="flex justify-between mb-1">
+            <span class="font-bold text-indigo-900">FC de Repouso (FCR Wearable)</span>
+            <span id="sim-val-pulse" class="font-mono font-bold text-indigo-700">74 bpm</span>
+          </div>
+          <input type="range" id="sim-input-pulse" min="45" max="115" step="1" value="74" oninput="runCardioBloodSimulation()" class="w-full accent-indigo-600">
+          <span class="text-[10px] text-indigo-600 font-medium">+22% de risco de anemia a cada +10 bpm (p < 0.0001)</span>
+        </div>
+
+        <!-- Gender -->
+        <div class="bg-indigo-50/50 p-2.5 rounded-lg border border-indigo-200">
+          <div class="flex justify-between mb-1">
+            <span class="font-bold text-indigo-900">Gênero Biológico</span>
+            <span id="sim-val-gender" class="font-mono font-bold text-indigo-700">Feminino</span>
+          </div>
+          <select id="sim-input-gender" onchange="runCardioBloodSimulation()" class="w-full text-xs p-1 rounded border border-indigo-200 bg-white">
+            <option value="2">Feminino (Risco Ferritina OR = 6.85)</option>
+            <option value="1">Masculino</option>
+          </select>
+        </div>
+
+        <!-- Age -->
+        <div class="bg-slate-50 p-2.5 rounded-lg border border-slate-200">
+          <div class="flex justify-between mb-1">
+            <span class="font-semibold text-slate-700">Idade Cronológica</span>
+            <span id="sim-val-age" class="font-mono font-bold text-indigo-700">42 anos</span>
+          </div>
+          <input type="range" id="sim-input-age" min="18" max="85" step="1" value="42" oninput="runCardioBloodSimulation()" class="w-full accent-indigo-600">
+        </div>
+
+        <!-- BMI -->
+        <div class="bg-slate-50 p-2.5 rounded-lg border border-slate-200">
+          <div class="flex justify-between mb-1">
+            <span class="font-semibold text-slate-700">IMC (Índice de Massa Corporal)</span>
+            <span id="sim-val-bmi" class="font-mono font-bold text-indigo-700">27.2 kg/m²</span>
+          </div>
+          <input type="range" id="sim-input-bmi" min="16.0" max="45.0" step="0.5" value="27.2" oninput="runCardioBloodSimulation()" class="w-full accent-indigo-600">
+        </div>
+
+        <!-- Systolic BP -->
+        <div class="bg-slate-50 p-2.5 rounded-lg border border-slate-200">
+          <div class="flex justify-between mb-1">
+            <span class="font-semibold text-slate-700">Pressão Sistólica (PAS)</span>
+            <span id="sim-val-sys" class="font-mono font-bold text-indigo-700">122 mmHg</span>
+          </div>
+          <input type="range" id="sim-input-sys" min="90" max="180" step="2" value="122" oninput="runCardioBloodSimulation()" class="w-full accent-indigo-600">
+        </div>
+
+        <!-- Diastolic BP -->
+        <div class="bg-slate-50 p-2.5 rounded-lg border border-slate-200">
+          <div class="flex justify-between mb-1">
+            <span class="font-semibold text-slate-700">Pressão Diastólica (PAD)</span>
+            <span id="sim-val-dia" class="font-mono font-bold text-indigo-700">76 mmHg</span>
+          </div>
+          <input type="range" id="sim-input-dia" min="50" max="110" step="2" value="76" oninput="runCardioBloodSimulation()" class="w-full accent-indigo-600">
+        </div>
+
+        <!-- Sleep Hours -->
+        <div class="bg-slate-50 p-2.5 rounded-lg border border-slate-200">
+          <div class="flex justify-between mb-1">
+            <span class="font-semibold text-slate-700">Duração do Sono</span>
+            <span id="sim-val-sleep" class="font-mono font-bold text-indigo-700">7.0 horas/noite</span>
+          </div>
+          <input type="range" id="sim-input-sleep" min="4.0" max="11.0" step="0.5" value="7.0" oninput="runCardioBloodSimulation()" class="w-full accent-indigo-600">
+        </div>
+
+        <!-- Sedentary Minutes -->
+        <div class="bg-slate-50 p-2.5 rounded-lg border border-slate-200">
+          <div class="flex justify-between mb-1">
+            <span class="font-semibold text-slate-700">Sedentarismo (Tempo Sentado)</span>
+            <span id="sim-val-sed" class="font-mono font-bold text-indigo-700">360 min/dia</span>
+          </div>
+          <input type="range" id="sim-input-sed" min="60" max="840" step="30" value="360" oninput="runCardioBloodSimulation()" class="w-full accent-indigo-600">
+        </div>
+
+        <!-- Output Assessment Box spanning 2 columns -->
+        <div class="col-span-2 mt-2 p-3 bg-slate-900 text-white rounded-xl space-y-3">
+          <div class="grid grid-cols-3 gap-2 text-center">
+            <div class="p-2 rounded-lg bg-slate-800/80 border border-slate-700">
+              <span class="text-[10px] uppercase font-bold text-rose-300 block">Risco de Anemia</span>
+              <span id="sim-cardio-ane-prob" class="text-xl font-extrabold text-white">--%</span>
+              <span id="sim-cardio-ane-badge" class="inline-block mt-1 text-[9px] px-1.5 py-0.5 rounded font-bold bg-slate-700 text-slate-300">--</span>
+            </div>
+            <div class="p-2 rounded-lg bg-slate-800/80 border border-slate-700">
+              <span class="text-[10px] uppercase font-bold text-amber-300 block">Ferritina Baixa (< 30)</span>
+              <span id="sim-cardio-fer-prob" class="text-xl font-extrabold text-white">--%</span>
+              <span id="sim-cardio-fer-badge" class="inline-block mt-1 text-[9px] px-1.5 py-0.5 rounded font-bold bg-slate-700 text-slate-300">--</span>
+            </div>
+            <div class="p-2 rounded-lg bg-slate-800/80 border border-slate-700">
+              <span class="text-[10px] uppercase font-bold text-indigo-300 block">Disfunção Tireoidiana</span>
+              <span id="sim-cardio-thy-prob" class="text-xl font-extrabold text-white">--%</span>
+              <span id="sim-cardio-thy-badge" class="inline-block mt-1 text-[9px] px-1.5 py-0.5 rounded font-bold bg-slate-700 text-slate-300">--</span>
+            </div>
+          </div>
+          <p id="sim-cardio-notes" class="text-xs text-slate-300 border-t border-slate-800 pt-2 leading-relaxed">
+            Ajuste os parâmetros acima para simular a probabilidade de alterações no sangue.
+          </p>
+        </div>
+      `;
+      runCardioBloodSimulation();
+    }
+
+    async function runCardioBloodSimulation() {
+      const pulse = parseFloat(document.getElementById("sim-input-pulse")?.value || 74);
+      const gender = parseFloat(document.getElementById("sim-input-gender")?.value || 2);
+      const age = parseFloat(document.getElementById("sim-input-age")?.value || 42);
+      const bmi = parseFloat(document.getElementById("sim-input-bmi")?.value || 27.2);
+      const sys = parseFloat(document.getElementById("sim-input-sys")?.value || 122);
+      const dia = parseFloat(document.getElementById("sim-input-dia")?.value || 76);
+      const sleep = parseFloat(document.getElementById("sim-input-sleep")?.value || 7.0);
+      const sed = parseFloat(document.getElementById("sim-input-sed")?.value || 360);
+
+      if (document.getElementById("sim-val-pulse")) document.getElementById("sim-val-pulse").innerText = pulse + " bpm";
+      if (document.getElementById("sim-val-gender")) document.getElementById("sim-val-gender").innerText = gender === 2 ? "Feminino" : "Masculino";
+      if (document.getElementById("sim-val-age")) document.getElementById("sim-val-age").innerText = age + " anos";
+      if (document.getElementById("sim-val-bmi")) document.getElementById("sim-val-bmi").innerText = bmi.toFixed(1) + " kg/m²";
+      if (document.getElementById("sim-val-sys")) document.getElementById("sim-val-sys").innerText = sys + " mmHg";
+      if (document.getElementById("sim-val-dia")) document.getElementById("sim-val-dia").innerText = dia + " mmHg";
+      if (document.getElementById("sim-val-sleep")) document.getElementById("sim-val-sleep").innerText = sleep.toFixed(1) + " h/noite";
+      if (document.getElementById("sim-val-sed")) document.getElementById("sim-val-sed").innerText = sed + " min/dia";
+
+      const payload = { pulse, age, gender, bmi, bp_sys: sys, bp_dia: dia, sleep_hours: sleep, sedentary_min: sed };
+
+      try {
+        const res = await fetch("/api/screening/cardio_blood/predict", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (data.anemia_prob_pct !== undefined) {
+          document.getElementById("sim-cardio-ane-prob").innerText = data.anemia_prob_pct + "%";
+          const b1 = document.getElementById("sim-cardio-ane-badge");
+          b1.innerText = data.anemia_tier;
+          b1.className = "inline-block mt-1 text-[9px] px-1.5 py-0.5 rounded font-bold " + (data.anemia_badge === "green" ? "bg-emerald-500/20 text-emerald-300" : (data.anemia_badge === "amber" ? "bg-amber-500/20 text-amber-300" : "bg-rose-500/20 text-rose-300"));
+        }
+        if (data.ferritin_prob_pct !== undefined) {
+          document.getElementById("sim-cardio-fer-prob").innerText = data.ferritin_prob_pct + "%";
+          const b2 = document.getElementById("sim-cardio-fer-badge");
+          b2.innerText = data.ferritin_tier;
+          b2.className = "inline-block mt-1 text-[9px] px-1.5 py-0.5 rounded font-bold " + (data.ferritin_badge === "green" ? "bg-emerald-500/20 text-emerald-300" : (data.ferritin_badge === "amber" ? "bg-amber-500/20 text-amber-300" : "bg-rose-500/20 text-rose-300"));
+        }
+        if (data.thyroid_prob_pct !== undefined) {
+          document.getElementById("sim-cardio-thy-prob").innerText = data.thyroid_prob_pct + "%";
+          const b3 = document.getElementById("sim-cardio-thy-badge");
+          b3.innerText = data.thyroid_tier;
+          b3.className = "inline-block mt-1 text-[9px] px-1.5 py-0.5 rounded font-bold " + (data.thyroid_badge === "green" ? "bg-emerald-500/20 text-emerald-300" : (data.thyroid_badge === "amber" ? "bg-amber-500/20 text-amber-300" : "bg-rose-500/20 text-rose-300"));
+        }
+        if (data.clinical_notes && document.getElementById("sim-cardio-notes")) {
+          document.getElementById("sim-cardio-notes").innerText = data.clinical_notes;
+        }
+      } catch (err) {
+        console.error("Erro na simulação Cardio Blood:", err);
+      }
+    }
+
+    async function loadMetabolicInsights() {
+      try {
+        const res = await fetch("/api/screening/metabolic/insights");
+        const data = await res.json();
+        metabolicData = data;
+
+        updateBenchmarkCards(data.benchmark);
+        renderMlImportanceChart(data.feature_importance);
+
+        if (data.auc_strict !== undefined) {
+          const r2Badge = document.getElementById("ml-reg-r2-badge");
+          if (r2Badge) r2Badge.innerText = `AUC Estrito = ${data.auc_strict}`;
+        }
+        if (data.auc_full !== undefined) {
+          const fBadge = document.getElementById("ml-reg-f-badge");
+          if (fBadge) fBadge.innerText = `AUC Expandido = ${data.auc_full}`;
+        }
+
+        renderRegressionTable(data.odds_table);
+        renderMetabolicSimulator();
+      } catch (err) {
+        console.error("Erro ao carregar Modelo 2:", err);
+      }
+    }
+
+    function renderMetabolicSimulator() {
+      const container = document.getElementById("sim-controls-grid");
+      if (!container) return;
+
+      container.innerHTML = `
+        <!-- BMI -->
+        <div class="bg-indigo-50/50 p-2.5 rounded-lg border border-indigo-200">
+          <div class="flex justify-between mb-1">
+            <span class="font-bold text-indigo-900">Índice de Massa Corporal (IMC)</span>
+            <span id="sim-val-m-bmi" class="font-mono font-bold text-indigo-700">27.5 kg/m²</span>
+          </div>
+          <input type="range" id="sim-input-m-bmi" min="16.0" max="45.0" step="0.5" value="27.5" oninput="runMetabolicSimulation()" class="w-full accent-indigo-600">
+          <span class="text-[10px] text-indigo-600 font-medium">+8.0% de risco de HbA1c alterada por ponto de IMC (p < 0.0001)</span>
+        </div>
+
+        <!-- Sleep Hours -->
+        <div class="bg-indigo-50/50 p-2.5 rounded-lg border border-indigo-200">
+          <div class="flex justify-between mb-1">
+            <span class="font-bold text-indigo-900">Duração do Sono (SLQ)</span>
+            <span id="sim-val-m-sleep" class="font-mono font-bold text-indigo-700">7.0 horas/noite</span>
+          </div>
+          <input type="range" id="sim-input-m-sleep" min="4.0" max="11.0" step="0.5" value="7.0" oninput="runMetabolicSimulation()" class="w-full accent-indigo-600">
+          <span class="text-[10px] text-indigo-600 font-medium">Efeito protetor: -4.5% de risco por hora de sono (p = 0.0026)</span>
+        </div>
+
+        <!-- Sedentary Minutes -->
+        <div class="bg-slate-50 p-2.5 rounded-lg border border-slate-200">
+          <div class="flex justify-between mb-1">
+            <span class="font-semibold text-slate-700">Sedentarismo (Tempo Sentado/Dia)</span>
+            <span id="sim-val-m-sed" class="font-mono font-bold text-indigo-700">360 min/dia</span>
+          </div>
+          <input type="range" id="sim-input-m-sed" min="60" max="840" step="30" value="360" oninput="runMetabolicSimulation()" class="w-full accent-indigo-600">
+        </div>
+
+        <!-- Resting Pulse -->
+        <div class="bg-slate-50 p-2.5 rounded-lg border border-slate-200">
+          <div class="flex justify-between mb-1">
+            <span class="font-semibold text-slate-700">Frequência Cardíaca de Repouso</span>
+            <span id="sim-val-m-pulse" class="font-mono font-bold text-indigo-700">72 bpm</span>
+          </div>
+          <input type="range" id="sim-input-m-pulse" min="45" max="115" step="1" value="72" oninput="runMetabolicSimulation()" class="w-full accent-indigo-600">
+        </div>
+
+        <!-- Output Assessment Box spanning 2 columns -->
+        <div class="col-span-2 mt-2 p-3 bg-slate-900 text-white rounded-xl space-y-3">
+          <div class="grid grid-cols-2 gap-3 text-center">
+            <div class="p-2.5 rounded-lg bg-slate-800/80 border border-slate-700">
+              <span class="text-[10px] uppercase font-bold text-indigo-300 block">Risco de HbA1c Alterada (>= 5.7%)</span>
+              <span id="sim-meta-hba1c-prob" class="text-2xl font-extrabold text-white">--%</span>
+              <span id="sim-meta-tier-badge" class="inline-block mt-1 text-[10px] px-2 py-0.5 rounded font-bold bg-slate-700 text-slate-300">--</span>
+            </div>
+            <div class="p-2.5 rounded-lg bg-slate-800/80 border border-slate-700">
+              <span class="text-[10px] uppercase font-bold text-emerald-300 block">Risco de Glicose de Jejum (>= 100 mg/dL)</span>
+              <span id="sim-meta-glu-prob" class="text-2xl font-extrabold text-white">--%</span>
+              <span class="block mt-1 text-[10px] text-slate-400">Jejum Prejudicado</span>
+            </div>
+          </div>
+          <p id="sim-meta-msg" class="text-xs text-slate-300 border-t border-slate-800 pt-2 leading-relaxed">
+            Ajuste os parâmetros de estilo de vida para avaliar a probabilidade de alteração metabólica.
+          </p>
+        </div>
+      `;
+      runMetabolicSimulation();
+    }
+
+    async function runMetabolicSimulation() {
+      const bmi = parseFloat(document.getElementById("sim-input-m-bmi")?.value || 27.5);
+      const sleep = parseFloat(document.getElementById("sim-input-m-sleep")?.value || 7.0);
+      const sed = parseFloat(document.getElementById("sim-input-m-sed")?.value || 360);
+      const pulse = parseFloat(document.getElementById("sim-input-m-pulse")?.value || 72);
+
+      if (document.getElementById("sim-val-m-bmi")) document.getElementById("sim-val-m-bmi").innerText = bmi.toFixed(1) + " kg/m²";
+      if (document.getElementById("sim-val-m-sleep")) document.getElementById("sim-val-m-sleep").innerText = sleep.toFixed(1) + " h/noite";
+      if (document.getElementById("sim-val-m-sed")) document.getElementById("sim-val-m-sed").innerText = sed + " min/dia";
+      if (document.getElementById("sim-val-m-pulse")) document.getElementById("sim-val-m-pulse").innerText = pulse + " bpm";
+
+      const payload = { bmi, sleep_hours: sleep, sedentary_min: sed, pulse };
+
+      try {
+        const res = await fetch("/api/screening/metabolic/predict", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (data.hba1c_prob_pct !== undefined) {
+          document.getElementById("sim-meta-hba1c-prob").innerText = data.hba1c_prob_pct + "%";
+          const badge = document.getElementById("sim-meta-tier-badge");
+          badge.innerText = data.risk_tier;
+          badge.className = "inline-block mt-1 text-[10px] px-2 py-0.5 rounded font-bold " + (data.risk_badge === "green" ? "bg-emerald-500/20 text-emerald-300" : (data.risk_badge === "amber" ? "bg-amber-500/20 text-amber-300" : "bg-rose-500/20 text-rose-300"));
+        }
+        if (data.glucose_prob_pct !== undefined) {
+          document.getElementById("sim-meta-glu-prob").innerText = data.glucose_prob_pct + "%";
+        }
+        if (data.clinical_msg && document.getElementById("sim-meta-msg")) {
+          document.getElementById("sim-meta-msg").innerText = data.clinical_msg;
+        }
+      } catch (err) {
+        console.error("Erro na simulação metabólica:", err);
+      }
+    }
+
+    let apneaData = null;
+    let inflammatoryData = null;
+
+    async function loadApneaInsights() {
+      try {
+        const res = await fetch("/api/apnea/insights");
+        const data = await res.json();
+        apneaData = data;
+
+        updateBenchmarkCards(data.benchmark);
+        renderMlImportanceChart(data.feature_importance);
+
+        if (data.auc !== undefined) {
+          const r2Badge = document.getElementById("ml-reg-r2-badge");
+          if (r2Badge) r2Badge.innerText = `ROC-AUC = ${data.auc} (90,5%)`;
+        }
+        const fBadge = document.getElementById("ml-reg-f-badge");
+        if (fBadge) fBadge.innerText = `N = ${data.sample_size.toLocaleString()} Pacientes`;
+
+        renderRegressionTable(data.odds_table);
+        renderApneaSimulator();
+      } catch (err) {
+        console.error("Erro ao carregar Modelo de Apneia:", err);
+      }
+    }
+
+    function renderApneaSimulator() {
+      const container = document.getElementById("sim-controls-grid");
+      if (!container) return;
+
+      container.innerHTML = `
+        <!-- Hematocrit -->
+        <div class="bg-indigo-50/50 p-2.5 rounded-lg border border-indigo-200">
+          <div class="flex justify-between mb-1">
+            <span class="font-bold text-indigo-900">Hematócrito (Hct)</span>
+            <span id="sim-val-ap-hct" class="font-mono font-bold text-indigo-700">43.5%</span>
+          </div>
+          <input type="range" id="sim-input-ap-hct" min="32.0" max="56.0" step="0.5" value="43.5" oninput="runApneaSimulation()" class="w-full accent-indigo-600">
+          <span class="text-[10px] text-indigo-600 font-medium">Marcador de policitemia secundária a hipóxia</span>
+        </div>
+
+        <!-- BMI -->
+        <div class="bg-indigo-50/50 p-2.5 rounded-lg border border-indigo-200">
+          <div class="flex justify-between mb-1">
+            <span class="font-bold text-indigo-900">IMC (Índice de Massa Corporal)</span>
+            <span id="sim-val-ap-bmi" class="font-mono font-bold text-indigo-700">29.0 kg/m²</span>
+          </div>
+          <input type="range" id="sim-input-ap-bmi" min="18.0" max="45.0" step="0.5" value="29.0" oninput="runApneaSimulation()" class="w-full accent-indigo-600">
+          <span class="text-[10px] text-indigo-600 font-medium">+5.6% de risco por ponto de IMC (p < 0.0001)</span>
+        </div>
+
+        <!-- Diastolic BP -->
+        <div class="bg-slate-50 p-2.5 rounded-lg border border-slate-200">
+          <div class="flex justify-between mb-1">
+            <span class="font-semibold text-slate-700">Pressão Diastólica Matinal</span>
+            <span id="sim-val-ap-dia" class="font-mono font-bold text-indigo-700">82 mmHg</span>
+          </div>
+          <input type="range" id="sim-input-ap-dia" min="55" max="110" step="1" value="82" oninput="runApneaSimulation()" class="w-full accent-indigo-600">
+          <span class="text-[10px] text-slate-500 font-medium">Hiperatividade simpática por microdespertares</span>
+        </div>
+
+        <!-- Systolic BP -->
+        <div class="bg-slate-50 p-2.5 rounded-lg border border-slate-200">
+          <div class="flex justify-between mb-1">
+            <span class="font-semibold text-slate-700">Pressão Sistólica (PAS)</span>
+            <span id="sim-val-ap-sys" class="font-mono font-bold text-indigo-700">128 mmHg</span>
+          </div>
+          <input type="range" id="sim-input-ap-sys" min="95" max="180" step="2" value="128" oninput="runApneaSimulation()" class="w-full accent-indigo-600">
+        </div>
+
+        <!-- Wearable SpO2 Noturna -->
+        <div class="bg-sky-50/60 p-2.5 rounded-lg border border-sky-200">
+          <div class="flex justify-between mb-1">
+            <span class="font-bold text-sky-900">SpO2 Média Noturna (Wearable)</span>
+            <span id="sim-val-ap-spo2" class="font-mono font-bold text-sky-700">95.0%</span>
+          </div>
+          <input type="range" id="sim-input-ap-spo2" min="85.0" max="99.0" step="0.5" value="95.0" oninput="runApneaSimulation()" class="w-full accent-sky-600">
+          <span class="text-[10px] text-sky-700 font-medium">Reforço do sensor oximétrico do smartwatch</span>
+        </div>
+
+        <!-- Wearable WASO Sleep Fragmentation -->
+        <div class="bg-sky-50/60 p-2.5 rounded-lg border border-sky-200">
+          <div class="flex justify-between mb-1">
+            <span class="font-bold text-sky-900">Fragmentação do Sono (WASO)</span>
+            <span id="sim-val-ap-waso" class="font-mono font-bold text-sky-700">40 min</span>
+          </div>
+          <input type="range" id="sim-input-ap-waso" min="10" max="120" step="5" value="40" oninput="runApneaSimulation()" class="w-full accent-sky-600">
+          <span class="text-[10px] text-sky-700 font-medium">Minutos acordado após adormecer (microdespertares)</span>
+        </div>
+
+        <!-- Age & Gender in row -->
+        <div class="bg-slate-50 p-2.5 rounded-lg border border-slate-200">
+          <div class="flex justify-between mb-1">
+            <span class="font-semibold text-slate-700">Idade Cronológica</span>
+            <span id="sim-val-ap-age" class="font-mono font-bold text-indigo-700">48 anos</span>
+          </div>
+          <input type="range" id="sim-input-ap-age" min="18" max="80" step="1" value="48" oninput="runApneaSimulation()" class="w-full accent-indigo-600">
+        </div>
+
+        <div class="bg-slate-50 p-2.5 rounded-lg border border-slate-200">
+          <div class="flex justify-between mb-1">
+            <span class="font-semibold text-slate-700">Gênero Biológico</span>
+            <span id="sim-val-ap-gen" class="font-mono font-bold text-indigo-700">Masculino</span>
+          </div>
+          <select id="sim-input-ap-gen" onchange="runApneaSimulation()" class="w-full text-xs p-1 rounded border border-slate-200 bg-white">
+            <option value="1">Masculino (Risco 58% Maior)</option>
+            <option value="2">Feminino</option>
+          </select>
+        </div>
+
+        <!-- Output Assessment Box spanning 2 columns -->
+        <div class="col-span-2 mt-2 p-3.5 bg-slate-900 text-white rounded-xl space-y-3">
+          <div class="flex items-center justify-between pb-2 border-b border-slate-800">
+            <div>
+              <span class="text-[10px] uppercase font-bold text-sky-400">Risco Estimado de Apneia do Sono / Hipóxia</span>
+              <p id="sim-ap-prob" class="text-3xl font-extrabold text-white">--%</p>
+            </div>
+            <div class="text-right">
+              <span id="sim-ap-badge" class="inline-block px-3 py-1 rounded-full text-xs font-bold bg-slate-700 text-slate-300">Calculando...</span>
+              <span id="sim-ap-poly" class="block text-[10px] text-rose-300 mt-1 font-mono"></span>
+            </div>
+          </div>
+          <p id="sim-ap-msg" class="text-xs text-slate-300 leading-relaxed">
+            Ajuste os parâmetros acima para simular a probabilidade de apneia obstrutiva.
+          </p>
+        </div>
+      `;
+      runApneaSimulation();
+    }
+
+    async function runApneaSimulation() {
+      const hct = parseFloat(document.getElementById("sim-input-ap-hct")?.value || 43.5);
+      const bmi = parseFloat(document.getElementById("sim-input-ap-bmi")?.value || 29.0);
+      const dia = parseFloat(document.getElementById("sim-input-ap-dia")?.value || 82);
+      const sys = parseFloat(document.getElementById("sim-input-ap-sys")?.value || 128);
+      const spo2 = parseFloat(document.getElementById("sim-input-ap-spo2")?.value || 95.0);
+      const waso = parseFloat(document.getElementById("sim-input-ap-waso")?.value || 40);
+      const age = parseFloat(document.getElementById("sim-input-ap-age")?.value || 48);
+      const gender = parseFloat(document.getElementById("sim-input-ap-gen")?.value || 1);
+
+      if (document.getElementById("sim-val-ap-hct")) document.getElementById("sim-val-ap-hct").innerText = hct.toFixed(1) + "%";
+      if (document.getElementById("sim-val-ap-bmi")) document.getElementById("sim-val-ap-bmi").innerText = bmi.toFixed(1) + " kg/m²";
+      if (document.getElementById("sim-val-ap-dia")) document.getElementById("sim-val-ap-dia").innerText = dia + " mmHg";
+      if (document.getElementById("sim-val-ap-sys")) document.getElementById("sim-val-ap-sys").innerText = sys + " mmHg";
+      if (document.getElementById("sim-val-ap-spo2")) document.getElementById("sim-val-ap-spo2").innerText = spo2.toFixed(1) + "%";
+      if (document.getElementById("sim-val-ap-waso")) document.getElementById("sim-val-ap-waso").innerText = waso + " min";
+      if (document.getElementById("sim-val-ap-age")) document.getElementById("sim-val-ap-age").innerText = age + " anos";
+      if (document.getElementById("sim-val-ap-gen")) document.getElementById("sim-val-ap-gen").innerText = gender === 1 ? "Masculino" : "Feminino";
+
+      const payload = {
+        hct,
+        rbc: hct / 9.1,
+        hgb: hct / 3.0,
+        bmi,
+        bp_sys: sys,
+        bp_dia: dia,
+        age,
+        gender,
+        wearable_spo2: spo2,
+        wearable_waso: waso
+      };
+
+      try {
+        const res = await fetch("/api/apnea/predict", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (data.apnea_prob_pct !== undefined) {
+          document.getElementById("sim-ap-prob").innerText = data.apnea_prob_pct + "%";
+          const badge = document.getElementById("sim-ap-badge");
+          badge.innerText = data.risk_tier;
+          badge.className = "inline-block px-3 py-1 rounded-full text-xs font-bold " + (data.risk_badge === "green" ? "bg-emerald-500/20 text-emerald-300" : (data.risk_badge === "amber" ? "bg-amber-500/20 text-amber-300" : "bg-rose-500/20 text-rose-300"));
+        }
+        if (data.polycytemia_flag && document.getElementById("sim-ap-poly")) {
+          document.getElementById("sim-ap-poly").innerText = "⚠️ Hematócrito elevado (sinal de hipóxia crônica)";
+        } else if (document.getElementById("sim-ap-poly")) {
+          document.getElementById("sim-ap-poly").innerText = "";
+        }
+        if (data.clinical_msg && document.getElementById("sim-ap-msg")) {
+          document.getElementById("sim-ap-msg").innerText = data.clinical_msg;
+        }
+      } catch (err) {
+        console.error("Erro na simulação de apneia:", err);
+      }
+    }
+
+    async function loadInflammatoryInsights() {
+      try {
+        const res = await fetch("/api/inflammatory/insights");
+        const data = await res.json();
+        inflammatoryData = data;
+
+        updateBenchmarkCards(data.benchmark);
+        renderMlImportanceChart(data.feature_importance);
+
+        if (data.r2_pulse !== undefined) {
+          const r2Badge = document.getElementById("ml-reg-r2-badge");
+          if (r2Badge) r2Badge.innerText = `R² Pulso = ${data.r2_pulse} (37,1%)`;
+        }
+        if (data.f_statistic !== undefined) {
+          const fBadge = document.getElementById("ml-reg-f-badge");
+          if (fBadge) fBadge.innerText = `F = ${data.f_statistic} (p < 10⁻²⁰⁰)`;
+        }
+
+        renderRegressionTable(data.regression_table);
+        renderInflammatorySimulator();
+      } catch (err) {
+        console.error("Erro ao carregar Modelo Inflamatório:", err);
+      }
+    }
+
+    function renderInflammatorySimulator() {
+      const container = document.getElementById("sim-controls-grid");
+      if (!container) return;
+
+      container.innerHTML = `
+        <!-- hs-CRP -->
+        <div class="bg-rose-50/60 p-2.5 rounded-lg border border-rose-200">
+          <div class="flex justify-between mb-1">
+            <span class="font-bold text-rose-900">Proteína C-Reativa (PCR-us)</span>
+            <span id="sim-val-inf-crp" class="font-mono font-bold text-rose-700">1.80 mg/L</span>
+          </div>
+          <input type="range" id="sim-input-inf-crp" min="0.1" max="15.0" step="0.1" value="1.8" oninput="runInflammatorySimulation()" class="w-full accent-rose-600">
+          <span class="text-[10px] text-rose-700 font-medium">+0.37 bpm na FC de repouso por cada mg/L (p < 1e-17)</span>
+        </div>
+
+        <!-- Segmented Neutrophils -->
+        <div class="bg-rose-50/60 p-2.5 rounded-lg border border-rose-200">
+          <div class="flex justify-between mb-1">
+            <span class="font-bold text-rose-900">Neutrófilos Segmentados</span>
+            <span id="sim-val-inf-neut" class="font-mono font-bold text-rose-700">4.2 10³/µL</span>
+          </div>
+          <input type="range" id="sim-input-inf-neut" min="1.5" max="10.0" step="0.1" value="4.2" oninput="runInflammatorySimulation()" class="w-full accent-rose-600">
+          <span class="text-[10px] text-rose-700 font-medium">+1.29 bpm na FC basal por cada 1.000 neutrófilos (p < 1e-44)</span>
+        </div>
+
+        <!-- Total Leucocytes -->
+        <div class="bg-slate-50 p-2.5 rounded-lg border border-slate-200">
+          <div class="flex justify-between mb-1">
+            <span class="font-semibold text-slate-700">Leucócitos Totais</span>
+            <span id="sim-val-inf-wbc" class="font-mono font-bold text-indigo-700">7.2 10³/µL</span>
+          </div>
+          <input type="range" id="sim-input-inf-wbc" min="3.0" max="16.0" step="0.2" value="7.2" oninput="runInflammatorySimulation()" class="w-full accent-indigo-600">
+        </div>
+
+        <!-- BMI -->
+        <div class="bg-slate-50 p-2.5 rounded-lg border border-slate-200">
+          <div class="flex justify-between mb-1">
+            <span class="font-semibold text-slate-700">IMC (Índice de Massa Corporal)</span>
+            <span id="sim-val-inf-bmi" class="font-mono font-bold text-indigo-700">27.5 kg/m²</span>
+          </div>
+          <input type="range" id="sim-input-inf-bmi" min="18.0" max="45.0" step="0.5" value="27.5" oninput="runInflammatorySimulation()" class="w-full accent-indigo-600">
+        </div>
+
+        <!-- Age -->
+        <div class="bg-slate-50 p-2.5 rounded-lg border border-slate-200">
+          <div class="flex justify-between mb-1">
+            <span class="font-semibold text-slate-700">Idade Cronológica</span>
+            <span id="sim-val-inf-age" class="font-mono font-bold text-indigo-700">45 anos</span>
+          </div>
+          <input type="range" id="sim-input-inf-age" min="18" max="80" step="1" value="45" oninput="runInflammatorySimulation()" class="w-full accent-indigo-600">
+        </div>
+
+        <!-- Gender -->
+        <div class="bg-slate-50 p-2.5 rounded-lg border border-slate-200">
+          <div class="flex justify-between mb-1">
+            <span class="font-semibold text-slate-700">Gênero Biológico</span>
+            <span id="sim-val-inf-gen" class="font-mono font-bold text-indigo-700">Masculino</span>
+          </div>
+          <select id="sim-input-inf-gen" onchange="runInflammatorySimulation()" class="w-full text-xs p-1 rounded border border-slate-200 bg-white">
+            <option value="1">Masculino</option>
+            <option value="2">Feminino (+2.42 bpm basal médio)</option>
+          </select>
+        </div>
+
+        <!-- Output Assessment Box spanning 2 columns -->
+        <div class="col-span-2 mt-2 p-3.5 bg-slate-900 text-white rounded-xl space-y-3">
+          <div class="grid grid-cols-3 gap-2 text-center">
+            <div class="p-2 rounded-lg bg-slate-800/80 border border-slate-700">
+              <span class="text-[10px] uppercase font-bold text-rose-300 block">FC Repouso Esperada</span>
+              <span id="sim-inf-pulse" class="text-2xl font-extrabold text-white">-- bpm</span>
+              <span id="sim-inf-pulse-elev" class="block text-[9px] text-amber-300 font-mono mt-0.5">--</span>
+            </div>
+            <div class="p-2 rounded-lg bg-slate-800/80 border border-slate-700">
+              <span class="text-[10px] uppercase font-bold text-indigo-300 block">Pressão Estimada (PAS/PAD)</span>
+              <span id="sim-inf-bp" class="text-2xl font-extrabold text-white">--/--</span>
+              <span id="sim-inf-bp-elev" class="block text-[9px] text-slate-400 font-mono mt-0.5">--</span>
+            </div>
+            <div class="p-2 rounded-lg bg-slate-800/80 border border-slate-700">
+              <span class="text-[10px] uppercase font-bold text-emerald-300 block">HRV Estimado (RMSSD)</span>
+              <span id="sim-inf-hrv" class="text-2xl font-extrabold text-white">-- ms</span>
+              <span class="block text-[9px] text-slate-400 font-mono mt-0.5">Tônus Vagal</span>
+            </div>
+          </div>
+          <p id="sim-inf-msg" class="text-xs text-slate-300 border-t border-slate-800 pt-2 leading-relaxed">
+            Ajuste a PCR e Neutrófilos para simular o impacto do tônus inflamatório na frequência cardíaca e pressão arterial.
+          </p>
+        </div>
+      `;
+      runInflammatorySimulation();
+    }
+
+    async function runInflammatorySimulation() {
+      const crp = parseFloat(document.getElementById("sim-input-inf-crp")?.value || 1.8);
+      const neut = parseFloat(document.getElementById("sim-input-inf-neut")?.value || 4.2);
+      const wbc = parseFloat(document.getElementById("sim-input-inf-wbc")?.value || 7.2);
+      const bmi = parseFloat(document.getElementById("sim-input-inf-bmi")?.value || 27.5);
+      const age = parseFloat(document.getElementById("sim-input-inf-age")?.value || 45);
+      const gender = parseFloat(document.getElementById("sim-input-inf-gen")?.value || 1);
+
+      if (document.getElementById("sim-val-inf-crp")) document.getElementById("sim-val-inf-crp").innerText = crp.toFixed(2) + " mg/L";
+      if (document.getElementById("sim-val-inf-neut")) document.getElementById("sim-val-inf-neut").innerText = neut.toFixed(1) + " 10³/µL";
+      if (document.getElementById("sim-val-inf-wbc")) document.getElementById("sim-val-inf-wbc").innerText = wbc.toFixed(1) + " 10³/µL";
+      if (document.getElementById("sim-val-inf-bmi")) document.getElementById("sim-val-inf-bmi").innerText = bmi.toFixed(1) + " kg/m²";
+      if (document.getElementById("sim-val-inf-age")) document.getElementById("sim-val-inf-age").innerText = age + " anos";
+      if (document.getElementById("sim-val-inf-gen")) document.getElementById("sim-val-inf-gen").innerText = gender === 1 ? "Masculino" : "Feminino";
+
+      const payload = { hscrp: crp, neut, wbc, bmi, age, gender };
+
+      try {
+        const res = await fetch("/api/inflammatory/predict", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (data.predicted_pulse !== undefined) {
+          document.getElementById("sim-inf-pulse").innerText = data.predicted_pulse + " bpm";
+          document.getElementById("sim-inf-pulse-elev").innerText = `+${data.pulse_elevation_bpm} bpm por inflamação`;
+        }
+        if (data.predicted_sys !== undefined) {
+          document.getElementById("sim-inf-bp").innerText = `${data.predicted_sys}/${data.predicted_dia}`;
+          document.getElementById("sim-inf-bp-elev").innerText = `+${data.sys_elevation_mmHg} mmHg PAS delta`;
+        }
+        if (data.estimated_hrv_rmssd !== undefined) {
+          document.getElementById("sim-inf-hrv").innerText = data.estimated_hrv_rmssd + " ms";
+        }
+        if (data.clinical_msg && document.getElementById("sim-inf-msg")) {
+          document.getElementById("sim-inf-msg").innerText = data.clinical_msg;
+        }
+      } catch (err) {
+        console.error("Erro na simulação inflamatória:", err);
+      }
+    }
+  
+    // =========================================================
+    // WEARABLE INFERENCE & CALIBRATION BRIDGE (FRONTEND)
+    // =========================================================
+    let currentWbWindowDays = 14;
+    let wearableUsersList = [];
+
+    async function loadWearableUsers() {
+      try {
+        const res = await fetch("/api/wearables/users?limit=15");
+        const data = await res.json();
+        wearableUsersList = data.users || [];
+        const select = document.getElementById("wb-user-select");
+        if (!select || wearableUsersList.length === 0) return;
+        
+        select.innerHTML = "";
+        const opt0 = document.createElement("option");
+        opt0.value = "U0001";
+        opt0.innerText = "U0001 (Janaina de Assis - Exames Reais Open Health)";
+        select.appendChild(opt0);
+
+        wearableUsersList.slice(1).forEach(u => {
+          const opt = document.createElement("option");
+          opt.value = u.user_id;
+          opt.innerText = `${u.user_id} (${u.gender}, ${u.age}a, IMC ${u.bmi} - FCR ${u.avg_resting_hr} bpm)`;
+          select.appendChild(opt);
+        });
+      } catch (e) {
+        console.error("Erro ao carregar lista de usuários wearables:", e);
+      }
+    }
+
+    function setWearableWindow(days) {
+      currentWbWindowDays = days;
+      const btn7 = document.getElementById("btn-wb-7d");
+      const btn14 = document.getElementById("btn-wb-14d");
+      if (btn7 && btn14) {
+        if (days === 7) {
+          btn7.className = "px-2.5 py-1 text-xs font-bold rounded bg-indigo-600 text-white shadow transition-all";
+          btn14.className = "px-2.5 py-1 text-xs font-bold rounded text-slate-400 hover:text-white transition-all";
+        } else {
+          btn14.className = "px-2.5 py-1 text-xs font-bold rounded bg-indigo-600 text-white shadow transition-all";
+          btn7.className = "px-2.5 py-1 text-xs font-bold rounded text-slate-400 hover:text-white transition-all";
+        }
+      }
+      loadWearableInference();
+    }
+
+    async function loadWearableInference() {
+      const select = document.getElementById("wb-user-select");
+      const userId = select ? select.value : "U0001";
+      
+      try {
+        const res = await fetch(`/api/wearables/user/${userId}?days=${currentWbWindowDays}`);
+        const data = await res.json();
+        renderWearableInferenceReport(data);
+      } catch (err) {
+        console.error("Erro na inferência do wearable:", err);
+      }
+    }
+
+    function renderWearableInferenceReport(data) {
+      if (!data || data.status !== "success") return;
+      const cal = data.calibration_and_residuals;
+      const win = data.wearable_window;
+      const mod = data.models_inference;
+      
+      // Card 1
+      const deltaEl = document.getElementById("wb-delta-ind");
+      if (deltaEl) deltaEl.innerText = `${cal.delta_individual_bpm >= 0 ? '+' : ''}${cal.delta_individual_bpm} bpm`;
+      const baseEl = document.getElementById("wb-baseline-hr");
+      if (baseEl) baseEl.innerText = `(Base: ${win.baseline_hr_bpm} bpm)`;
+      const expEl = document.getElementById("wb-expected-hr");
+      if (expEl) expEl.innerText = `Esperado NHANES: ${cal.expected_pulse_nhanes} bpm`;
+      const tgtEl = document.getElementById("wb-target-hr");
+      if (tgtEl) tgtEl.innerText = `${cal.personalized_target_hr} bpm`;
+      
+      // Card 2
+      const resVal = document.getElementById("wb-residual-val");
+      if (resVal) resVal.innerText = `${cal.autonomic_residual_bpm >= 0 ? '+' : ''}${cal.autonomic_residual_bpm} bpm`;
+      const curHr = document.getElementById("wb-current-hr");
+      if (curHr) curHr.innerText = `(Medido: ${win.resting_hr_bpm} bpm)`;
+      const autDesc = document.getElementById("wb-autonomic-desc");
+      if (autDesc) autDesc.innerText = cal.clinical_explanation;
+      
+      const badge = document.getElementById("wb-autonomic-badge");
+      if (badge && resVal) {
+        badge.innerText = cal.autonomic_status;
+        if (cal.autonomic_zone === "green") {
+          badge.className = "mt-2 text-[10px] px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 inline-block font-bold";
+          resVal.className = "text-3xl font-extrabold text-emerald-400";
+        } else if (cal.autonomic_zone === "amber") {
+          badge.className = "mt-2 text-[10px] px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40 inline-block font-bold";
+          resVal.className = "text-3xl font-extrabold text-amber-400";
+        } else if (cal.autonomic_zone === "rose") {
+          badge.className = "mt-2 text-[10px] px-2 py-0.5 rounded bg-rose-500/20 text-rose-300 border border-rose-500/40 inline-block font-bold";
+          resVal.className = "text-3xl font-extrabold text-rose-400";
+        } else {
+          badge.className = "mt-2 text-[10px] px-2 py-0.5 rounded bg-sky-500/20 text-sky-300 border border-sky-500/40 inline-block font-bold";
+          resVal.className = "text-3xl font-extrabold text-sky-400";
+        }
+      }
+      
+      // Card 3: Metabolic
+      const mProb = document.getElementById("wb-metabolic-prob");
+      if (mProb) mProb.innerText = `${mod.metabolic.risk_probability_pct}%`;
+      const mBadge = document.getElementById("wb-metabolic-badge");
+      if (mBadge) {
+        mBadge.innerText = mod.metabolic.risk_tier;
+        mBadge.className = `text-xs font-bold px-1.5 py-0.5 rounded bg-${mod.metabolic.risk_badge || 'emerald'}-500/20 text-${mod.metabolic.risk_badge || 'emerald'}-300`;
+      }
+      const predHb = document.getElementById("wb-pred-hba1c");
+      if (predHb) predHb.innerText = `${cal.hba1c_predicted_wearable}%`;
+      const realHb = document.getElementById("wb-real-hba1c");
+      if (realHb) realHb.innerText = `${cal.hba1c_real_lab}%`;
+      const resHb = document.getElementById("wb-res-hba1c");
+      if (resHb) resHb.innerText = `${cal.hba1c_residual >= 0 ? '+' : ''}${cal.hba1c_residual}%`;
+      
+      // Card 4: Apnea
+      const aProb = document.getElementById("wb-apnea-prob");
+      if (aProb) aProb.innerText = `${mod.apnea_hypoxia.apnea_prob_pct}%`;
+      const aBadge = document.getElementById("wb-apnea-badge");
+      if (aBadge) {
+        aBadge.innerText = mod.apnea_hypoxia.risk_tier;
+        aBadge.className = `text-xs font-bold px-1.5 py-0.5 rounded bg-${mod.apnea_hypoxia.risk_badge || 'sky'}-500/20 text-${mod.apnea_hypoxia.risk_badge || 'sky'}-300`;
+      }
+      const spo2El = document.getElementById("wb-spo2-val");
+      if (spo2El) spo2El.innerText = `${win.spo2_avg_pct}%`;
+      const wasoEl = document.getElementById("wb-waso-val");
+      if (wasoEl) wasoEl.innerText = `${win.wake_after_sleep_onset_min || '--'} min`;
+      const aMsg = document.getElementById("wb-apnea-msg");
+      if (aMsg) aMsg.innerText = mod.apnea_hypoxia.clinical_msg;
+      
+      // Mapping Table
+      const tbody = document.getElementById("wb-mapping-tbody");
+      if (tbody) {
+        tbody.innerHTML = "";
+        (data.input_mapping_table || []).forEach(row => {
+          const tr = document.createElement("tr");
+          tr.className = "hover:bg-slate-900/60 transition-colors";
+          tr.innerHTML = `
+            <td class="py-2 px-3 font-semibold text-white">${row.variable}</td>
+            <td class="py-2 px-3 text-indigo-300 font-mono">${row.wearable_source}</td>
+            <td class="py-2 px-3 text-slate-400 font-mono">${row.nhanes_target}</td>
+            <td class="py-2 px-3 text-right"><span class="px-2 py-0.5 rounded text-[10px] bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/30">✓ ${row.status}</span></td>
+          `;
+          tbody.appendChild(tr);
+        });
+      }
+    }
+
+    async function testWearableSyncPost() {
+      const select = document.getElementById("wb-user-select");
+      const userId = select ? select.value : "U0001";
+      
+      const payload = {
+        user_id: userId,
+        days: currentWbWindowDays,
+        sync_source: "smartwatch_gateway_simulation"
+      };
+      
+      try {
+        const res = await fetch("/wearables/sync", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        renderWearableInferenceReport(data);
+        alert(`[POST /wearables/sync] Sincronização realizada com sucesso para ${userId}!\nResíduo Autonômico: ${data.calibration_and_residuals.autonomic_residual_bpm} bpm\nStatus: ${data.calibration_and_residuals.autonomic_status}`);
+      } catch (err) {
+        alert("Erro ao sincronizar wearable via POST: " + err);
+      }
+    }
+
+    function toggleMappingTable() {
+      const wrapper = document.getElementById("wb-mapping-table-wrapper");
+      const text = document.getElementById("btn-toggle-mapping-text");
+      const icon = document.getElementById("btn-toggle-mapping-icon");
+      if (!wrapper) return;
+      
+      if (wrapper.classList.contains("hidden")) {
+        wrapper.classList.remove("hidden");
+        if (text) text.innerText = "Ocultar Detalhes";
+        if (icon) icon.className = "fa-solid fa-chevron-up text-[10px]";
+      } else {
+        wrapper.classList.add("hidden");
+        if (text) text.innerText = "Mostrar Detalhes";
+        if (icon) icon.className = "fa-solid fa-chevron-down text-[10px]";
+      }
+    }
+
+  </script>
+</body>
+</html>

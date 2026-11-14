@@ -1,0 +1,56 @@
+{
+  "cabecalho": {
+    "laboratorio": "Laboratório Modelo Paulista",
+    "protocolo": "[SIM-2026-0041]",
+    "paciente": "[Nome do Paciente Simulado]",
+    "cpf": "[000.000.000-00]",
+    "data_nascimento": "[DD/MM/AAAA]",
+    "data_coleta": "05/11/2026",
+    "data_liberacao": "06/11/2026",
+    "medico_solicitante": "[Dr(a). Solicitante]",
+    "responsavel_tecnico": "[Dr(a). Responsável CRM/CRBM Simulado]",
+    "observacoes": "Resultados liberados eletronicamente. A interpretação clínica deve ser realizada pelo médico assistente considerando o histórico longitudinal do paciente."
+  },
+  "exames": [
+    {
+      "analito": "Ferritina Sérica",
+      "material": "Soro",
+      "metodo": "Quimioluminescência",
+      "resultado_bruto": "14,0 ng/mL",
+      "valor_numerico": 14.0,
+      "unidade": "ng/mL",
+      "valores_referencia": "30,0 a 300,0 ng/mL",
+      "status_alterado": true
+    },
+    {
+      "analito": "Hemoglobina",
+      "material": "Sangue Total",
+      "metodo": "Automatizado",
+      "resultado_bruto": "12,4 g/dL",
+      "valor_numerico": 12.4,
+      "unidade": "g/dL",
+      "valores_referencia": "12,0 a 16,0 g/dL",
+      "status_alterado": false
+    },
+    {
+      "analito": "TSH Ultrassensível",
+      "material": "Soro",
+      "metodo": "Eletroquimioluminescência",
+      "resultado_bruto": "2,15 mUI/L",
+      "valor_numerico": 2.15,
+      "unidade": "mUI/L",
+      "valores_referencia": "0,40 a 4,50 mUI/L",
+      "status_alterado": false
+    },
+    {
+      "analito": "Glicose em Jejum",
+      "material": "Plasma Fluoretado",
+      "metodo": "Enzimático",
+      "resultado_bruto": "92 mg/dL",
+      "valor_numerico": 92.0,
+      "unidade": "mg/dL",
+      "valores_referencia": "70 a 99 mg/dL",
+      "status_alterado": false
+    }
+  ]
+}

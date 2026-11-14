@@ -1,0 +1,117 @@
+[
+  {
+    "coluna": "hemacias_10e6_uL",
+    "loinc": "789-8",
+    "categoria": "2. HEMOGRAMA COMPLETO"
+  },
+  {
+    "coluna": "hemoglobina_g_dL",
+    "loinc": "718-7",
+    "categoria": "2. HEMOGRAMA COMPLETO"
+  },
+  {
+    "coluna": "hematocrito_pct",
+    "loinc": "4544-3",
+    "categoria": "2. HEMOGRAMA COMPLETO"
+  },
+  {
+    "coluna": "vcm_fL",
+    "loinc": "787-2",
+    "categoria": "2. HEMOGRAMA COMPLETO"
+  },
+  {
+    "coluna": "hcm_pg",
+    "loinc": "785-6",
+    "categoria": "2. HEMOGRAMA COMPLETO"
+  },
+  {
+    "coluna": "chcm_g_dL",
+    "loinc": "786-4",
+    "categoria": "2. HEMOGRAMA COMPLETO"
+  },
+  {
+    "coluna": "rdw_pct",
+    "loinc": "788-0",
+    "categoria": "2. HEMOGRAMA COMPLETO"
+  },
+  {
+    "coluna": "leucocitos_totais_10e3_uL",
+    "loinc": "6690-2",
+    "categoria": "2. HEMOGRAMA COMPLETO"
+  },
+  {
+    "coluna": "neutrofilos_abs_10e3_uL",
+    "loinc": "751-8",
+    "categoria": "2. HEMOGRAMA COMPLETO"
+  },
+  {
+    "coluna": "neutrofilos_pct",
+    "loinc": "770-8",
+    "categoria": "2. HEMOGRAMA COMPLETO"
+  },
+  {
+    "coluna": "bastonetes_pct",
+    "loinc": "763-3",
+    "categoria": "2. HEMOGRAMA COMPLETO"
+  },
+  {
+    "coluna": "segmentados_pct",
+    "loinc": "769-0",
+    "categoria": "2. HEMOGRAMA COMPLETO"
+  },
+  {
+    "coluna": "linfocitos_abs_10e3_uL",
+    "loinc": "731-0",
+    "categoria": "2. HEMOGRAMA COMPLETO"
+  },
+  {
+    "coluna": "linfocitos_pct",
+    "loinc": "736-9",
+    "categoria": "2. HEMOGRAMA COMPLETO"
+  },
+  {
+    "coluna": "monocitos_abs_10e3_uL",
+    "loinc": "742-7",
+    "categoria": "2. HEMOGRAMA COMPLETO"
+  },
+  {
+    "coluna": "monocitos_pct",
+    "loinc": "5905-5",
+    "categoria": "2. HEMOGRAMA COMPLETO"
+  },
+  {
+    "coluna": "eosinofilos_abs_10e3_uL",
+    "loinc": "711-2",
+    "categoria": "2. HEMOGRAMA COMPLETO"
+  },
+  {
+    "coluna": "eosinofilos_pct",
+    "loinc": "713-8",
+    "categoria": "2. HEMOGRAMA COMPLETO"
+  },
+  {
+    "coluna": "basofilos_abs_10e3_uL",
+    "loinc": "704-7",
+    "categoria": "2. HEMOGRAMA COMPLETO"
+  },
+  {
+    "coluna": "basofilos_pct",
+    "loinc": "706-2",
+    "categoria": "2. HEMOGRAMA COMPLETO"
+  },
+  {
+    "coluna": "plaquetas_10e3_uL",
+    "loinc": "777-3",
+    "categoria": "2. HEMOGRAMA COMPLETO"
+  },
+  {
+    "coluna": "vpm_fL",
+    "loinc": "32623-1",
+    "categoria": "2. HEMOGRAMA COMPLETO"
+  },
+  {
+    "coluna": "glicose_jejum_mg_dL",
+    "loinc": "2345-7",
+    "categoria": "3. METABOLISMO DA GLICOSE E PERFIL LIPÍDICO"
+  }
+]
