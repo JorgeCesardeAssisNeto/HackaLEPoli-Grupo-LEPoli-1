@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, desc
 
 from database import get_db
+from dependencies import verify_service_token
 from models.wearable_metrics import WearableDailyMetric
 from models.causal_results import ClinicalAlert
 from schemas.causal import (
@@ -20,7 +21,11 @@ from services.ingestion_service import upsert_metric
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/causal", tags=["3-Layer Causal Inference Engine"])
+router = APIRouter(
+    prefix="/causal",
+    tags=["3-Layer Causal Inference Engine"],
+    dependencies=[Depends(verify_service_token)],
+)
 
 INLINE_METRIC_KEYS = (
     "steps",

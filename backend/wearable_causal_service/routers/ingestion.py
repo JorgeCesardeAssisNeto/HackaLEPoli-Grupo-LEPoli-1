@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from clients.rook_client import is_mobile_only_source, rook_client
 from database import get_db
+from dependencies import verify_service_token
 from models.mappings import RookUserMapping, TerraUserMapping
 from models.wearable_metrics import WearableDailyMetric
 from schemas.metrics import DailyMetricCreate, DailyMetricResponse, MappingResponse
@@ -151,8 +152,13 @@ async def get_authorizer(
     }
 
 
-@router.post("/metrics/manual", response_model=DailyMetricResponse, status_code=status.HTTP_201_CREATED,
-             summary="Inserção manual (inclui confundidores: tela, cafeína, álcool)")
+@router.post(
+    "/metrics/manual",
+    response_model=DailyMetricResponse,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(verify_service_token)],
+    summary="Inserção manual (inclui confundidores: tela, cafeína, álcool)",
+)
 async def ingest_manual_metric(
     metric_in: DailyMetricCreate, run_causal: bool = True, db: AsyncSession = Depends(get_db)
 ):

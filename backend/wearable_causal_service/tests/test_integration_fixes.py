@@ -430,3 +430,46 @@ async def test_webhook_alias_api_webhooks_rook(mem_client, monkeypatch):
     assert body["status"] == "acknowledged"
     assert body["patient_id"] == "pt-alias-1"
     assert body["records_ingested"] == 1
+
+
+@pytest.mark.asyncio
+async def test_service_token_authentication_enforcement(mem_client, monkeypatch):
+    monkeypatch.setattr(settings, "SERVICE_API_KEY", "open-health-secret-key")
+    monkeypatch.setattr(settings, "ROOK_WEBHOOK_SECRET", "")
+    monkeypatch.setattr(causal_engine.fhir_client, "get_biomarker_evolution", AsyncMock(return_value=None))
+
+    # 1. Protected routes reject missing/wrong token with 401
+    r_unauth_eval = await mem_client.post("/causal/evaluate/pt-auth", json={"ferritin_ng_ml": 25.0})
+    assert r_unauth_eval.status_code == 401
+
+    r_wrong_alerts = await mem_client.get(
+        "/causal/alerts/pt-auth", headers={"X-Service-Token": "wrong-key"}
+    )
+    assert r_wrong_alerts.status_code == 401
+
+    r_unauth_manual = await mem_client.post(
+        "/wearables/metrics/manual",
+        json={"patient_id": "pt-auth", "date": "2026-11-14", "steps": 6000},
+    )
+    assert r_unauth_manual.status_code == 401
+
+    # 2. Protected routes accept X-Service-Token and Authorization: Bearer <token>
+    r_ok_manual = await mem_client.post(
+        "/wearables/metrics/manual",
+        json={"patient_id": "pt-auth", "date": "2026-11-14", "steps": 6000},
+        headers={"X-Service-Token": "open-health-secret-key"},
+    )
+    assert r_ok_manual.status_code == 201
+
+    r_ok_eval = await mem_client.post(
+        "/causal/evaluate/pt-auth",
+        json={"ferritin_ng_ml": 25.0},
+        headers={"Authorization": "Bearer open-health-secret-key"},
+    )
+    assert r_ok_eval.status_code == 200
+
+    # 3. Unprotected routes (/health, /, /wearables/webhook, /api/webhooks/rook) remain open without token
+    assert (await mem_client.get("/health")).status_code == 200
+    assert (await mem_client.get("/")).status_code == 200
+    assert (await mem_client.post("/wearables/webhook", json={"user_id": "pt-auth", "steps": 7000})).status_code == 200
+    assert (await mem_client.post("/api/webhooks/rook", json={"user_id": "pt-auth", "steps": 7100})).status_code == 200

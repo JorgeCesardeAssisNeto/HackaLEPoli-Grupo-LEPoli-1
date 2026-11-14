@@ -44,6 +44,7 @@ class Settings(BaseSettings):
     PORT: int = 5050
     HOST: str = "0.0.0.0"
     DEBUG: bool = False
+    SERVICE_API_KEY: str = ""
 
     # Banco relacional (SQLite local ou PostgreSQL no Render)
     DATABASE_PATH: str = str(DEFAULT_DB_PATH)
