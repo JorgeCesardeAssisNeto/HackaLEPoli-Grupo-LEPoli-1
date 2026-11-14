@@ -7,6 +7,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 ROOK_PRODUCTION_BASE_URL = "https://api.rook-connect.com"
 ROOK_SANDBOX_BASE_URL = "https://api.rook-connect.review"
+DEFAULT_ROOK_CLIENT_UUID = "9bc48033-9d8e-45b4-8c6a-1ef162951442"
 
 BASE_DIR = Path(__file__).resolve().parent
 
@@ -52,7 +53,7 @@ class Settings(BaseSettings):
 
     # ROOK API
     ROOK_API_BASE_URL: str = ROOK_PRODUCTION_BASE_URL
-    ROOK_CLIENT_UUID: str = ""
+    ROOK_CLIENT_UUID: str = DEFAULT_ROOK_CLIENT_UUID
     ROOK_SECRET_KEY: str = ""
     ROOK_CLIENT_SECRET: str = ""
     ROOK_WEBHOOK_SECRET: str = ""
@@ -78,7 +79,9 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def _normalize_rook_settings(self):
-        """Aceita ROOK_CLIENT_SECRET como alias e usa URL Sandbox quando DEBUG=True e sem override explícito."""
+        """Aceita ROOK_CLIENT_SECRET como alias, garante UUID padrão e usa URL Sandbox quando DEBUG=True."""
+        if is_placeholder(self.ROOK_CLIENT_UUID):
+            self.ROOK_CLIENT_UUID = DEFAULT_ROOK_CLIENT_UUID
         if is_placeholder(self.ROOK_SECRET_KEY) and not is_placeholder(self.ROOK_CLIENT_SECRET):
             self.ROOK_SECRET_KEY = self.ROOK_CLIENT_SECRET
         if self.DEBUG and not os.getenv("ROOK_API_BASE_URL"):

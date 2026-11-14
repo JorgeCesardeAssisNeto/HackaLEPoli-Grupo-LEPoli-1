@@ -473,3 +473,154 @@ async def test_service_token_authentication_enforcement(mem_client, monkeypatch)
     assert (await mem_client.get("/")).status_code == 200
     assert (await mem_client.post("/wearables/webhook", json={"user_id": "pt-auth", "steps": 7000})).status_code == 200
     assert (await mem_client.post("/api/webhooks/rook", json={"user_id": "pt-auth", "steps": 7100})).status_code == 200
+
+
+@pytest.mark.asyncio
+async def test_get_patient_wearable_metrics_auto_seeds_7_days_and_supports_alias(mem_client, monkeypatch):
+    # Mesmo com SERVICE_API_KEY ativa, GET /wearables/metrics/{patient_id} deve funcionar sem header
+    monkeypatch.setattr(settings, "SERVICE_API_KEY", "secret-token-xyz")
+
+    r1 = await mem_client.get("/wearables/metrics/pt-empty-chart")
+    assert r1.status_code == 200
+    data1 = r1.json()
+    assert len(data1) == 7
+    # Verifica ordenação por data decrescente
+    dates = [row["date"] for row in data1]
+    assert dates == sorted(dates, reverse=True)
+    assert all(row["icd_index"] is not None for row in data1)
+
+    # Alias /metrics/{patient_id}?days=3
+    r2 = await mem_client.get("/metrics/pt-empty-chart?days=3")
+    assert r2.status_code == 200
+    data2 = r2.json()
+    assert len(data2) == 3
+    assert data2[0]["date"] == data1[0]["date"]
+
+
+@pytest.mark.asyncio
+async def test_sync_endpoint_seeds_metrics_and_generates_alerts_when_rook_empty(mem_client, monkeypatch):
+    monkeypatch.setattr(polling, "AsyncSessionLocal", mem_client.maker)
+    monkeypatch.setattr(polling.rook_client, "fetch_summary", AsyncMock(return_value=[]))
+    monkeypatch.setattr(causal_engine.fhir_client, "get_biomarker_evolution", AsyncMock(return_value=None))
+
+    r_sync = await mem_client.post("/wearables/sync?patient_id=pt-sync-demo")
+    assert r_sync.status_code == 200
+    body = r_sync.json()
+    assert body["status"] == "success"
+    assert body["patient_id"] == "pt-sync-demo"
+    assert body["records_processed"] >= 1
+    assert body["alerts_generated"] >= 1
+
+    # Chamada com body JSON e sem query param também funciona
+    r_sync_body = await mem_client.post("/wearables/sync", json={"patient_id": "pt-sync-demo"})
+    assert r_sync_body.status_code == 200
+    assert r_sync_body.json()["records_processed"] >= 1
+    assert r_sync_body.json()["alerts_generated"] >= 1
+
+
+@pytest.mark.asyncio
+async def test_authorizer_connection_page_url_and_v1_path_fallback(mem_client, monkeypatch):
+    import httpx
+    from config import DEFAULT_ROOK_CLIENT_UUID, ROOK_PRODUCTION_BASE_URL, ROOK_SANDBOX_BASE_URL
+
+    # 1. Fallback retorna connection_page_url com UUID padrão
+    monkeypatch.setattr(settings, "ROOK_CLIENT_UUID", DEFAULT_ROOK_CLIENT_UUID)
+    monkeypatch.setattr(settings, "ROOK_SECRET_KEY", "")
+    monkeypatch.setattr(settings, "ROOK_CLIENT_SECRET", "")
+    monkeypatch.setattr(causal_engine.fhir_client, "get_biomarker_evolution", AsyncMock(return_value=None))
+
+    r_fb = await mem_client.get("/wearables/authorizer/user-conn-1/garmin")
+    assert r_fb.status_code == 200
+    fb_body = r_fb.json()
+    assert fb_body["mode"] == "sandbox_fallback"
+    assert fb_body["connected"] is True
+    assert (
+        fb_body["connection_page_url"]
+        == f"https://connections.rook-connect.review/client_uuid/{DEFAULT_ROOK_CLIENT_UUID}/user_id/user-conn-1"
+    )
+
+    # 2. Quando /api/v1/... retorna 404 e /v1/... retorna 200 com authorizer_url
+    monkeypatch.setattr(settings, "ROOK_API_BASE_URL", ROOK_SANDBOX_BASE_URL)
+    monkeypatch.setattr(settings, "ROOK_SECRET_KEY", "sandbox-secret")
+
+    def mock_handler(request: httpx.Request):
+        url_str = str(request.url)
+        if "/api/v1/" in url_str:
+            return httpx.Response(404, json={"detail": "not found"})
+        if url_str == f"{ROOK_SANDBOX_BASE_URL}/v1/user_id/user-conn-2/data_source/polar/authorizer":
+            return httpx.Response(200, json={"authorizer_url": "https://flow.polar.com/oauth2/authorization"})
+        return httpx.Response(404)
+
+    transport = httpx.MockTransport(mock_handler)
+    orig_client = httpx.AsyncClient
+    monkeypatch.setattr(httpx, "AsyncClient", lambda **kw: orig_client(transport=transport, **kw))
+
+    r_v1 = await mem_client.get("/wearables/authorizer/user-conn-2/polar")
+    assert r_v1.status_code == 200
+    v1_body = r_v1.json()
+    assert v1_body["mode"] == "oauth_redirect"
+    assert v1_body["authorization_url"] == "https://flow.polar.com/oauth2/authorization"
+    assert "connection_page_url" in v1_body
+
+
+@pytest.mark.asyncio
+async def test_clinical_rag_conhecimento_extrair_and_interpret_endpoints(mem_client):
+    # 1. GET /api/conhecimento/{analito} (conhecido e genérico)
+    r_ferr = await mem_client.get("/api/conhecimento/ferritina")
+    assert r_ferr.status_code == 200
+    ferr_data = r_ferr.json()
+    assert ferr_data["codigo_loinc"] == "2276-4"
+    assert "description" in ferr_data
+    assert "clinical_significance" in ferr_data
+    assert "causal_relationship" in ferr_data
+
+    r_gen = await mem_client.get("/api/conhecimento/homocisteina_especial")
+    assert r_gen.status_code == 200
+    assert r_gen.json()["status"] == "success"
+
+    # 2. POST /api/extrair com texto de laudo
+    r_ext = await mem_client.post(
+        "/api/extrair",
+        json={
+            "text": "Laudo Laboratorial: Ferritina Sérica: 18,4 ng/mL | Hemoglobina: 11,5 g/dL | Glicose de Jejum: 106 mg/dL | PCR: 4,1 mg/L"
+        },
+    )
+    assert r_ext.status_code == 200
+    ext_body = r_ext.json()
+    assert ext_body["status"] == "success"
+    assert len(ext_body["biomarkers"]) == 4
+    by_code = {b["code"]: b for b in ext_body["biomarkers"]}
+    assert by_code["2276-4"]["value"] == 18.4
+    assert by_code["2276-4"]["status"] == "LOW"
+    assert by_code["2345-7"]["value"] == 106.0
+    assert by_code["2345-7"]["status"] == "HIGH"
+
+    # 3. POST /api/exams/interpret e alias POST /exams/interpret
+    r_int = await mem_client.post(
+        "/api/exams/interpret",
+        json={
+            "patient_id": "pt-rag-1",
+            "biomarkers": ext_body["biomarkers"],
+            "steps": 3600,
+            "avg_hr_day_bpm": 96.0,
+            "resting_hr_bpm": 75.0,
+            "caffeine_mg": 15.0,
+            "screen_time_min": 40.0,
+        },
+    )
+    assert r_int.status_code == 200
+    int_body = r_int.json()
+    assert int_body["risk_level"] in {"MODERATE", "HIGH"}
+    assert "summary" in int_body
+    assert len(int_body["findings"]) == 4
+    assert len(int_body["incongruencies"]) >= 1
+    assert isinstance(int_body["urgent_referral"], bool)
+    assert "technical_notes" in int_body
+
+    r_int_alias = await mem_client.post(
+        "/exams/interpret",
+        json={"text": "Ferritina: 85 ng/mL, TSH: 2.1 mUI/L", "avg_hr_day_bpm": 95.0, "steps": 4000},
+    )
+    assert r_int_alias.status_code == 200
+    assert r_int_alias.json()["status"] == "success"
+

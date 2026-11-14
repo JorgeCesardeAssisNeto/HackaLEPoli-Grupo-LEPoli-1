@@ -24,6 +24,21 @@ PILLAR_SUMMARY_PATHS = {
 
 MOBILE_ONLY_SOURCES = {"apple_health", "health_connect"}
 
+AUTHORIZER_PATHS = (
+    "/api/v1/user_id/{user_id}/data_source/{data_source}/authorizer",
+    "/v1/user_id/{user_id}/data_source/{data_source}/authorizer",
+)
+
+
+def extract_authorizer_url(payload: Any) -> Optional[str]:
+    if not isinstance(payload, dict):
+        return None
+    for key in ("authorization_url", "authorizer_url", "auth_url", "url"):
+        val = payload.get(key)
+        if isinstance(val, str) and val.strip():
+            return val.strip()
+    return None
+
 
 def is_mobile_only_source(data_source: str) -> bool:
     norm = (data_source or "").strip().lower().replace(" ", "_").replace("-", "_")
@@ -94,22 +109,32 @@ class RookClient:
             logger.warning("ROOK_CLIENT_UUID/ROOK_SECRET_KEY não configurados para consultar authorizer.")
             return None
 
-        for base in self._candidate_base_urls():
-            url = f"{base}/api/v1/user_id/{user_id}/data_source/{data_source}/authorizer"
-            try:
-                async with httpx.AsyncClient(timeout=self.timeout) as client:
-                    resp = await client.get(url, headers=self._headers())
-                if resp.status_code == 200:
-                    data = resp.json()
-                    if isinstance(data, dict):
-                        return data
-                logger.warning(
-                    "Authorizer ROOK (%s) retornou %d para user=%s source=%s",
-                    base, resp.status_code, user_id, data_source,
-                )
-            except httpx.RequestError as exc:
-                logger.warning("Falha de rede ao consultar authorizer ROOK (%s): %s", url, exc)
+        for path_tpl in AUTHORIZER_PATHS:
+            path = path_tpl.format(user_id=user_id, data_source=data_source)
+            for base in self._candidate_base_urls():
+                url = f"{base}{path}"
+                try:
+                    async with httpx.AsyncClient(timeout=self.timeout) as client:
+                        resp = await client.get(url, headers=self._headers())
+                    if resp.status_code == 200:
+                        data = resp.json()
+                        if isinstance(data, dict):
+                            auth_url = extract_authorizer_url(data)
+                            if auth_url:
+                                data.setdefault("authorization_url", auth_url)
+                            return data
+                    logger.warning(
+                        "Authorizer ROOK (%s) retornou %d para user=%s source=%s",
+                        url, resp.status_code, user_id, data_source,
+                    )
+                except httpx.RequestError as exc:
+                    logger.warning("Falha de rede ao consultar authorizer ROOK (%s): %s", url, exc)
         return None
+
+    async def get_authorizer_url(self, user_id: str, data_source: str) -> Optional[str]:
+        """Retorna diretamente a URL OAuth da fonte (authorization_url / authorizer_url) ou None."""
+        data = await self.get_authorizer(user_id, data_source)
+        return extract_authorizer_url(data)
 
 
 rook_client = RookClient()
