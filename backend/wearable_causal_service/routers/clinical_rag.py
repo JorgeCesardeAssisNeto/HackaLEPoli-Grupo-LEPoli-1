@@ -985,11 +985,17 @@ def _lookup_catalog_entry(query_name: str) -> Dict[str, Any]:
     )
 
 
-def _classify_status(value: float, ref_min: float, ref_max: float) -> Tuple[str, str]:
-    """Retorna (status_en, cor_pt) para um valor numérico frente à faixa de referência."""
-    if value < ref_min:
+def _classify_status(
+    value: float,
+    ref_min: Optional[float],
+    ref_max: Optional[float],
+) -> Tuple[Optional[str], Optional[str]]:
+    """Retorna (status_en, cor_pt) frente à faixa de referência, ou (None, None) quando não houver referência."""
+    if ref_min is None and ref_max is None:
+        return None, None
+    if ref_min is not None and value < ref_min:
         return "LOW", "AMARELO" if value >= ref_min * 0.6 else "VERMELHO"
-    if value > ref_max:
+    if ref_max is not None and value > ref_max:
         return "HIGH", "AMARELO" if value <= ref_max * 1.4 else "VERMELHO"
     return "NORMAL", "VERDE"
 
@@ -1000,15 +1006,36 @@ def _build_biomarker_item(
     custom_unit: Optional[str] = None,
     custom_ref_min: Optional[float] = None,
     custom_ref_max: Optional[float] = None,
+    use_catalog_reference: bool = False,
 ) -> Dict[str, Any]:
-    ref_min = float(custom_ref_min if custom_ref_min is not None else entry.get("reference_min", 0.0))
-    ref_max = float(custom_ref_max if custom_ref_max is not None else entry.get("reference_max", 100.0))
     unit = (custom_unit or "").strip() or entry.get("unit", "unid")
-    if custom_ref_min is not None or custom_ref_max is not None or custom_unit:
-        ref_range = f"{ref_min} a {ref_max} {unit}" if ref_min > 0 else f"< {ref_max} {unit}"
+    has_explicit_ref = custom_ref_min is not None or custom_ref_max is not None
+
+    if has_explicit_ref:
+        ref_min: Optional[float] = float(custom_ref_min) if custom_ref_min is not None else None
+        ref_max: Optional[float] = float(custom_ref_max) if custom_ref_max is not None else None
+        if ref_min is not None and ref_max is not None:
+            ref_range: Optional[str] = f"{ref_min} a {ref_max} {unit}" if ref_min > 0 else f"< {ref_max} {unit}"
+        elif ref_max is not None:
+            ref_range = f"< {ref_max} {unit}"
+        else:
+            ref_range = f"> {ref_min} {unit}"
+        status_en, status_pt = _classify_status(value, ref_min, ref_max)
+    elif use_catalog_reference:
+        ref_min = float(entry.get("reference_min", 0.0))
+        ref_max = float(entry.get("reference_max", 100.0))
+        if custom_unit:
+            ref_range = f"{ref_min} a {ref_max} {unit}" if ref_min > 0 else f"< {ref_max} {unit}"
+        else:
+            ref_range = entry.get("reference_range", f"{ref_min} - {ref_max} {unit}")
+        status_en, status_pt = _classify_status(value, ref_min, ref_max)
     else:
-        ref_range = entry.get("reference_range", f"{ref_min} - {ref_max} {unit}")
-    status_en, status_pt = _classify_status(value, ref_min, ref_max)
+        ref_min = None
+        ref_max = None
+        ref_range = None
+        status_en = None
+        status_pt = None
+
     return {
         "name": entry["name"],
         "nome_exame": entry["nome_exame"],
@@ -1075,16 +1102,89 @@ def _extract_number_and_unit_before_ref(segment: str) -> Tuple[Optional[float], 
     return None, None
 
 
-def _extract_ref_from_segment(segment: str) -> Tuple[Optional[float], Optional[float]]:
-    ref_match = re.search(
-        rf"(?:refer[eê]ncia|valores\s+de\s+refer[eê]ncia|\bref\.?|\bvr\b|normal|desej[aá]vel)\s*[:=]?\s*"
+def _extract_ref_from_segment(segment: str, after_result_only: bool = False) -> Tuple[Optional[float], Optional[float]]:
+    if not segment or not segment.strip():
+        return None, None
+
+    # 1. Faixa explícita com rótulo (Ref:, VR:, Valor de Referência:, Referência:, Normal:, Desejável:)
+    ref_labeled_range = re.search(
+        rf"(?:valores\s+de\s+refer[eê]ncia|valor\s+de\s+refer[eê]ncia|refer[eê]ncia|\bref\.?|\bvr\b|normal|desej[aá]vel)\s*[:=]?\s*"
         rf"({NUMBER_TOKEN_REGEX})\s*(?:a|-|at[eé])\s*({NUMBER_TOKEN_REGEX})",
         segment,
         flags=re.IGNORECASE,
     )
-    if ref_match:
-        return _parse_br_float(ref_match.group(1)), _parse_br_float(ref_match.group(2))
+    if ref_labeled_range:
+        return _parse_br_float(ref_labeled_range.group(1)), _parse_br_float(ref_labeled_range.group(2))
+
+    # 2. Limite superior explícito com rótulo (ex: Ref: < 190, VR: <= 5,0, Referência: inferior a 200)
+    ref_labeled_upper = re.search(
+        rf"(?:valores\s+de\s+refer[eê]ncia|valor\s+de\s+refer[eê]ncia|refer[eê]ncia|\bref\.?|\bvr\b|normal|desej[aá]vel)\s*[:=]?\s*"
+        rf"(?:<|<=|≤|inferior\s+a|menor\s+que|at[eé])\s*({NUMBER_TOKEN_REGEX})",
+        segment,
+        flags=re.IGNORECASE,
+    )
+    if ref_labeled_upper:
+        return None, _parse_br_float(ref_labeled_upper.group(1))
+
+    # 3. Limite inferior explícito com rótulo (ex: Ref: > 40, VR: >= 60, Referência: superior a 40)
+    ref_labeled_lower = re.search(
+        rf"(?:valores\s+de\s+refer[eê]ncia|valor\s+de\s+refer[eê]ncia|refer[eê]ncia|\bref\.?|\bvr\b|normal|desej[aá]vel)\s*[:=]?\s*"
+        rf"(?:>|>=|≥|superior\s+a|maior\s+que|acima\s+de)\s*({NUMBER_TOKEN_REGEX})",
+        segment,
+        flags=re.IGNORECASE,
+    )
+    if ref_labeled_lower:
+        return _parse_br_float(ref_labeled_lower.group(1)), None
+
+    # 4. Faixa sem rótulo explícito posicionada após o valor do exame (ex: "(70 - 99 mg/dL)", "(< 5.0)", "(> 40)")
+    if after_result_only:
+        cleaned = re.sub(r"\b\d{2}/\d{2}/\d{2,4}\b", " ", segment)
+        cleaned = re.sub(r"\b\d{2}-\d{2}-\d{4}\b", " ", cleaned)
+        cleaned = re.sub(r"\b\d{4}-\d{2}-\d{2}\b", " ", cleaned)
+        cleaned = re.sub(r"\b\d{3,5}-\d\b", " ", cleaned)
+        cleaned = re.sub(r"\(\s*25[\s-]*oh\s*\)", " ", cleaned, flags=re.IGNORECASE)
+
+        unlabeled_range = re.search(
+            rf"(?:\(\s*|\[\s*|\b)({NUMBER_TOKEN_REGEX})\s*(?:a|-|at[eé])\s*({NUMBER_TOKEN_REGEX})",
+            cleaned,
+            flags=re.IGNORECASE,
+        )
+        if unlabeled_range:
+            return _parse_br_float(unlabeled_range.group(1)), _parse_br_float(unlabeled_range.group(2))
+
+        unlabeled_upper = re.search(
+            rf"(?:\(\s*|\[\s*|(?:^|\s))(?:<|<=|≤)\s*({NUMBER_TOKEN_REGEX})",
+            cleaned,
+            flags=re.IGNORECASE,
+        )
+        if unlabeled_upper:
+            return None, _parse_br_float(unlabeled_upper.group(1))
+
+        unlabeled_lower = re.search(
+            rf"(?:\(\s*|\[\s*|(?:^|\s))(?:>|>=|≥)\s*({NUMBER_TOKEN_REGEX})",
+            cleaned,
+            flags=re.IGNORECASE,
+        )
+        if unlabeled_lower:
+            return _parse_br_float(unlabeled_lower.group(1)), None
+
     return None, None
+
+
+def _remainder_after_first_result(line: str) -> str:
+    """Retorna o trecho da linha situado após o primeiro valor numérico (+ unidade opcional)."""
+    cleaned = re.sub(r"\b\d{2}/\d{2}/\d{2,4}\b", " ", line)
+    cleaned = re.sub(r"\b\d{2}:\d{2}(?::\d{2})?\b", " ", cleaned)
+    cleaned = re.sub(r"\b\d{3,5}-\d\b", " ", cleaned)
+    cleaned = re.sub(r"\(\s*25[\s-]*oh\s*\)", " ", cleaned, flags=re.IGNORECASE)
+    m = re.search(
+        rf"(?<![A-Za-z0-9_-])[<>≤≥]?\s*(?P<val>{NUMBER_TOKEN_REGEX})(?:\s*(?P<unit>{UNIT_TOKEN_REGEX}))?",
+        cleaned,
+        flags=re.IGNORECASE,
+    )
+    if not m:
+        return ""
+    return cleaned[m.end() :]
 
 
 def _extract_value_from_window(
@@ -1102,13 +1202,23 @@ def _extract_value_from_window(
     if not raw_lines:
         return None, None, None, None
 
-    # 1. Tenta extrair na mesma linha em que o nome do exame apareceu
-    first_line = raw_lines[0]
+    # 1. Tenta extrair na mesma linha em que o nome do exame apareceu (truncando em '|' se houver múltiplos exames na linha)
+    first_line = raw_lines[0].split("|", 1)[0]
     val_same_line, unit_same_line = _extract_number_and_unit_before_ref(first_line)
     if val_same_line is not None:
         rmin, rmax = _extract_ref_from_segment(first_line)
-        if rmin is None and len(raw_lines) > 1:
-            rmin, rmax = _extract_ref_from_segment(raw_lines[1])
+        if rmin is None and rmax is None:
+            remainder = _remainder_after_first_result(first_line)
+            rmin, rmax = _extract_ref_from_segment(remainder, after_result_only=True)
+        if rmin is None and rmax is None and len(raw_lines) > 1:
+            next_stripped = raw_lines[1].split("|", 1)[0].strip()
+            # Só busca referência na linha seguinte se ela for explicitamente uma linha de referência e não outro exame
+            if re.match(
+                r"^(?:\(?\s*(?:valores\s+de\s+refer[eê]ncia|valor\s+de\s+refer[eê]ncia|refer[eê]ncia|\bref\.?\b|\bvr\b|desej[aá]vel|normal)\b)",
+                next_stripped,
+                flags=re.IGNORECASE,
+            ) and not any(re.search(pat, next_stripped, flags=re.IGNORECASE) for _, pat in EXTRACTION_RULES):
+                rmin, rmax = _extract_ref_from_segment(next_stripped)
         return val_same_line, unit_same_line, rmin, rmax
 
     # 2. Layout multi-linha: percorre as linhas seguintes parando se encontrar outro nome de exame
@@ -1124,15 +1234,21 @@ def _extract_value_from_window(
         ):
             if any(re.search(pat, stripped, flags=re.IGNORECASE) for _, pat in EXTRACTION_RULES):
                 break
-        block_lines.append(next_line)
+        block_lines.append(next_line.split("|", 1)[0])
 
     block_text = "\n".join(block_lines[1:])
     val_multi, unit_multi = _extract_number_and_unit_before_ref(block_text)
     rmin, rmax = _extract_ref_from_segment("\n".join(block_lines))
+    if rmin is None and rmax is None:
+        remainder_multi = _remainder_after_first_result(block_text)
+        rmin, rmax = _extract_ref_from_segment(remainder_multi, after_result_only=True)
     return val_multi, unit_multi, rmin, rmax
 
 
-def _extract_biomarkers_from_text(raw_text: str) -> List[Dict[str, Any]]:
+def _extract_biomarkers_from_text(
+    raw_text: str,
+    use_catalog_reference: bool = False,
+) -> List[Dict[str, Any]]:
     """Extrai biomarcadores estruturados de texto de PDF laboratorial, CSV ou texto livre."""
     if not raw_text or not raw_text.strip():
         return []
@@ -1160,6 +1276,7 @@ def _extract_biomarkers_from_text(raw_text: str) -> List[Dict[str, Any]]:
                     custom_unit=pdf_unit,
                     custom_ref_min=ref_min,
                     custom_ref_max=ref_max,
+                    use_catalog_reference=use_catalog_reference,
                 )
                 extracted_with_pos.append((match.start(), item))
                 seen_keys.add(key)
@@ -1171,7 +1288,7 @@ def _extract_biomarkers_from_text(raw_text: str) -> List[Dict[str, Any]]:
         rf"(?:\s*[:.\-]+\s*|\s{{2,}}|\s+Resultado\s*[:=]?\s*)"
         rf"(?P<val>{NUMBER_TOKEN_REGEX})\s*"
         rf"(?P<unit>{UNIT_TOKEN_REGEX})"
-        rf"(?:[^\n]{{0,60}}?(?:Ref(?:er[eê]ncia)?|VR)?[\s:(\[]*(?P<rmin>{NUMBER_TOKEN_REGEX})\s*(?:a|-)\s*(?P<rmax>{NUMBER_TOKEN_REGEX}))?",
+        rf"(?:[^\n|]{{0,60}}?(?:Ref(?:er[eê]ncia)?|VR)?[\s:(\[]*(?P<rmin>{NUMBER_TOKEN_REGEX})\s*(?:a|-)\s*(?P<rmax>{NUMBER_TOKEN_REGEX}))?",
         flags=re.IGNORECASE,
     )
     ignored_generic_names = {
@@ -1202,6 +1319,7 @@ def _extract_biomarkers_from_text(raw_text: str) -> List[Dict[str, Any]]:
             custom_unit=unit,
             custom_ref_min=rmin,
             custom_ref_max=rmax,
+            use_catalog_reference=use_catalog_reference,
         )
         extracted_with_pos.append((gmatch.start(), item))
         seen_keys.add(canonical_key)
@@ -1211,7 +1329,10 @@ def _extract_biomarkers_from_text(raw_text: str) -> List[Dict[str, Any]]:
     return [item for _, item in extracted_with_pos]
 
 
-def _normalize_biomarker_list(raw_list: List[Any]) -> List[Dict[str, Any]]:
+def _normalize_biomarker_list(
+    raw_list: List[Any],
+    use_catalog_reference: bool = False,
+) -> List[Dict[str, Any]]:
     normalized: List[Dict[str, Any]] = []
     for item in raw_list:
         if not isinstance(item, dict):
@@ -1252,7 +1373,14 @@ def _normalize_biomarker_list(raw_list: List[Any]) -> List[Dict[str, Any]]:
             else None
         )
         custom_unit = item.get("unit") or item.get("unidade")
-        built = _build_biomarker_item(entry, val, custom_unit=custom_unit, custom_ref_min=rmin, custom_ref_max=rmax)
+        built = _build_biomarker_item(
+            entry,
+            val,
+            custom_unit=custom_unit,
+            custom_ref_min=rmin,
+            custom_ref_max=rmax,
+            use_catalog_reference=use_catalog_reference,
+        )
         if item.get("status"):
             built["status"] = str(item["status"]).upper()
         normalized.append(built)
@@ -1370,8 +1498,8 @@ async def obter_conhecimento_analito(analito: str):
     }
 
 
-def _extract_lab_name_from_text(raw_text: str, default_lab: str = "Open Health Lab Integration") -> str:
-    """Extrai o nome do laboratório do cabeçalho do PDF (ex: Laboratório, Lab., Fleury, Dasa, Sabin, Einstein...)."""
+def _extract_lab_name_from_text(raw_text: str, default_lab: Optional[str] = None) -> Optional[str]:
+    """Extrai o nome do laboratório do cabeçalho do PDF (ex: Laboratório, Lab., Fleury, Dasa, Sabin, Einstein...). Retorna None se ausente."""
     if not raw_text or not raw_text.strip():
         return default_lab
 
@@ -1382,7 +1510,9 @@ def _extract_lab_name_from_text(raw_text: str, default_lab: str = "Open Health L
         flags=re.IGNORECASE,
     )
     if explicit_lab:
-        return explicit_lab.group(1).strip()
+        candidate = explicit_lab.group(1).strip()
+        if candidate:
+            return candidate
 
     # 2. Linha contendo 'Laboratório', 'Lab.' ou redes laboratoriais brasileiras conhecidas
     known_lab = re.search(
@@ -1395,26 +1525,11 @@ def _extract_lab_name_from_text(raw_text: str, default_lab: str = "Open Health L
         if candidate:
             return candidate
 
-    # 3. Primeira linha não-vazia do cabeçalho antes de Paciente / Data / Exames
-    for line in raw_text.splitlines()[:5]:
-        cleaned = line.strip(" -:|")
-        if not cleaned or len(cleaned) < 3:
-            continue
-        if re.match(
-            r"^(?:paciente|nome|data|coleta|emiss[aã]o|liberado|cpf|cns|idade|sexo|m[eé]dico|protocolo|resultado|valores|refer[eê]ncia|laudo\s+laboratorial)\b",
-            cleaned,
-            flags=re.IGNORECASE,
-        ):
-            continue
-        if any(re.search(pat, cleaned, flags=re.IGNORECASE) for _, pat in EXTRACTION_RULES):
-            continue
-        return cleaned
-
     return default_lab
 
 
-def _extract_collection_date_from_text(raw_text: str, default_date: str) -> str:
-    """Extrai a data de coleta/exame do texto do PDF com suporte amplo a formatos brasileiros e ISO."""
+def _extract_collection_date_from_text(raw_text: str, default_date: Optional[str] = None) -> Optional[str]:
+    """Extrai a data de coleta/exame do texto do PDF com suporte amplo a formatos brasileiros e ISO. Retorna None se ausente."""
     if not raw_text or not raw_text.strip():
         return default_date
 
@@ -1447,9 +1562,9 @@ async def extrair_exames_endpoint(request: Request):
     extracted: List[Dict[str, Any]] = []
     raw_text = ""
     raw_file_bytes = b""
-    patient_name = "Paciente Open Health"
-    exam_date = date.today().isoformat()
-    lab_name = "Open Health Lab Integration"
+    patient_name: Optional[str] = None
+    exam_date: Optional[str] = None
+    lab_name: Optional[str] = None
     explicit_date_provided = False
     explicit_lab_provided = False
     has_real_input = False
@@ -1460,7 +1575,8 @@ async def extrair_exames_endpoint(request: Request):
         except Exception:
             body = {}
         if isinstance(body, dict):
-            patient_name = str(body.get("patient_name") or body.get("paciente_nome") or patient_name)
+            if body.get("patient_name") or body.get("paciente_nome"):
+                patient_name = str(body.get("patient_name") or body.get("paciente_nome"))
             if body.get("date") or body.get("data_exame") or body.get("collection_date") or body.get("data_coleta"):
                 exam_date = str(
                     body.get("collection_date")
@@ -1489,7 +1605,7 @@ async def extrair_exames_endpoint(request: Request):
             raw_list = body.get("biomarkers") or body.get("exames") or body.get("lab_results") or body.get("results")
             if isinstance(raw_list, list) and len(raw_list) > 0:
                 has_real_input = True
-                extracted.extend(_normalize_biomarker_list(raw_list))
+                extracted.extend(_normalize_biomarker_list(raw_list, use_catalog_reference=False))
 
             # 3. Texto do laudo (text / raw_text / content / texto)
             txt_field = (
@@ -1518,10 +1634,10 @@ async def extrair_exames_endpoint(request: Request):
                     direct_items.append({"name": k, "value": float(v)})
             if direct_items:
                 has_real_input = True
-                extracted.extend(_normalize_biomarker_list(direct_items))
+                extracted.extend(_normalize_biomarker_list(direct_items, use_catalog_reference=False))
         elif isinstance(body, list) and len(body) > 0:
             has_real_input = True
-            extracted.extend(_normalize_biomarker_list(body))
+            extracted.extend(_normalize_biomarker_list(body, use_catalog_reference=False))
     else:
         # Multipart file upload (qualquer nome de campo: file, arquivo, pdf, document, etc.) ou corpo bruto
         form_parsed = False
@@ -1566,11 +1682,11 @@ async def extrair_exames_endpoint(request: Request):
         if pac_match:
             patient_name = pac_match.group(1).strip()
         if not explicit_date_provided:
-            exam_date = _extract_collection_date_from_text(raw_text, exam_date)
+            exam_date = _extract_collection_date_from_text(raw_text, None)
         if not explicit_lab_provided:
-            lab_name = _extract_lab_name_from_text(raw_text, lab_name)
+            lab_name = _extract_lab_name_from_text(raw_text, None)
 
-        text_biomarkers = _extract_biomarkers_from_text(raw_text)
+        text_biomarkers = _extract_biomarkers_from_text(raw_text, use_catalog_reference=False)
         existing_codes = {b["code"] for b in extracted}
         for tb in text_biomarkers:
             if tb["code"] not in existing_codes:
@@ -1580,11 +1696,11 @@ async def extrair_exames_endpoint(request: Request):
     # APENAS usa os 5 exames de demonstração quando a requisição NÃO enviou arquivo nem texto nem biomarcadores
     if not has_real_input and not extracted:
         extracted = [
-            _build_biomarker_item(CLINICAL_KNOWLEDGE_CATALOG["ferritina"], 22.4),
-            _build_biomarker_item(CLINICAL_KNOWLEDGE_CATALOG["hemoglobina"], 12.6),
-            _build_biomarker_item(CLINICAL_KNOWLEDGE_CATALOG["glicose"], 94.0),
-            _build_biomarker_item(CLINICAL_KNOWLEDGE_CATALOG["pcr"], 2.1),
-            _build_biomarker_item(CLINICAL_KNOWLEDGE_CATALOG["vitamina_d"], 26.5),
+            _build_biomarker_item(CLINICAL_KNOWLEDGE_CATALOG["ferritina"], 22.4, use_catalog_reference=False),
+            _build_biomarker_item(CLINICAL_KNOWLEDGE_CATALOG["hemoglobina"], 12.6, use_catalog_reference=False),
+            _build_biomarker_item(CLINICAL_KNOWLEDGE_CATALOG["glicose"], 94.0, use_catalog_reference=False),
+            _build_biomarker_item(CLINICAL_KNOWLEDGE_CATALOG["pcr"], 2.1, use_catalog_reference=False),
+            _build_biomarker_item(CLINICAL_KNOWLEDGE_CATALOG["vitamina_d"], 26.5, use_catalog_reference=False),
         ]
 
     hash_source = raw_file_bytes if raw_file_bytes else raw_text.encode("utf-8", errors="ignore")
@@ -1644,29 +1760,29 @@ async def interpret_exams_endpoint(
     biomarkers: List[Dict[str, Any]] = []
     raw_list = body.get("biomarkers") or body.get("exames") or body.get("lab_results") or body.get("results")
     if isinstance(raw_list, list):
-        biomarkers.extend(_normalize_biomarker_list(raw_list))
+        biomarkers.extend(_normalize_biomarker_list(raw_list, use_catalog_reference=True))
 
     if body.get("valor_numerico") is not None or body.get("value") is not None:
         single_name = body.get("nome_exame") or body.get("name") or body.get("analito") or body.get("codigo_loinc") or "ferritina"
         single_val = body.get("valor_numerico") if body.get("valor_numerico") is not None else body.get("value")
-        biomarkers.extend(_normalize_biomarker_list([{"name": single_name, "value": single_val}]))
+        biomarkers.extend(_normalize_biomarker_list([{"name": single_name, "value": single_val}], use_catalog_reference=True))
 
     if body.get("ferritin_ng_ml") is not None:
-        biomarkers.extend(_normalize_biomarker_list([{"name": "ferritina", "value": body["ferritin_ng_ml"]}]))
+        biomarkers.extend(_normalize_biomarker_list([{"name": "ferritina", "value": body["ferritin_ng_ml"]}], use_catalog_reference=True))
 
     raw_text = str(body.get("text") or body.get("content") or body.get("raw_text") or "")
     if raw_text:
         existing_codes = {b["code"] for b in biomarkers}
-        for tb in _extract_biomarkers_from_text(raw_text):
+        for tb in _extract_biomarkers_from_text(raw_text, use_catalog_reference=True):
             if tb["code"] not in existing_codes:
                 biomarkers.append(tb)
 
     if not biomarkers:
         biomarkers = [
-            _build_biomarker_item(CLINICAL_KNOWLEDGE_CATALOG["ferritina"], 24.0),
-            _build_biomarker_item(CLINICAL_KNOWLEDGE_CATALOG["hemoglobina"], 12.4),
-            _build_biomarker_item(CLINICAL_KNOWLEDGE_CATALOG["glicose"], 96.0),
-            _build_biomarker_item(CLINICAL_KNOWLEDGE_CATALOG["pcr"], 1.8),
+            _build_biomarker_item(CLINICAL_KNOWLEDGE_CATALOG["ferritina"], 24.0, use_catalog_reference=True),
+            _build_biomarker_item(CLINICAL_KNOWLEDGE_CATALOG["hemoglobina"], 12.4, use_catalog_reference=True),
+            _build_biomarker_item(CLINICAL_KNOWLEDGE_CATALOG["glicose"], 96.0, use_catalog_reference=True),
+            _build_biomarker_item(CLINICAL_KNOWLEDGE_CATALOG["pcr"], 1.8, use_catalog_reference=True),
         ]
 
     # 2. Obtém contexto de wearable (do payload ou do banco para o patient_id)

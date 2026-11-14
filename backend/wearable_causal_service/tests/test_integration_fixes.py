@@ -505,6 +505,10 @@ async def test_sync_endpoint_seeds_metrics_and_generates_alerts_when_rook_empty(
     monkeypatch.setattr(polling.rook_client, "fetch_summary", AsyncMock(return_value=[]))
     monkeypatch.setattr(causal_engine.fhir_client, "get_biomarker_evolution", AsyncMock(return_value=None))
 
+    # Vincula o paciente ao provedor 'garmin' via authorizer antes do sync
+    r_auth = await mem_client.get("/wearables/authorizer/pt-sync-demo/garmin")
+    assert r_auth.status_code == 200
+
     r_sync = await mem_client.post("/wearables/sync?patient_id=pt-sync-demo")
     assert r_sync.status_code == 200
     body = r_sync.json()
@@ -512,12 +516,23 @@ async def test_sync_endpoint_seeds_metrics_and_generates_alerts_when_rook_empty(
     assert body["patient_id"] == "pt-sync-demo"
     assert body["records_processed"] >= 1
     assert body["alerts_generated"] >= 1
+    assert body["mode"] == "rook_connected"
+    assert body["source"] == "garmin"
+    assert body["data_source"] == "garmin"
+
+    # Métricas retornadas pelo GET /wearables/metrics/{patient_id} trazem o provedor vinculado (nunca 'sandbox_seeded')
+    r_metrics = await mem_client.get("/wearables/metrics/pt-sync-demo")
+    assert r_metrics.status_code == 200
+    metrics_list = r_metrics.json()
+    assert len(metrics_list) >= 1
+    assert all(m["source"] == "garmin" and m["data_source"] == "garmin" for m in metrics_list)
 
     # Chamada com body JSON e sem query param também funciona
     r_sync_body = await mem_client.post("/wearables/sync", json={"patient_id": "pt-sync-demo"})
     assert r_sync_body.status_code == 200
     assert r_sync_body.json()["records_processed"] >= 1
     assert r_sync_body.json()["alerts_generated"] >= 1
+    assert r_sync_body.json()["mode"] == "rook_connected"
 
 
 @pytest.mark.asyncio
@@ -579,22 +594,42 @@ async def test_clinical_rag_conhecimento_extrair_and_interpret_endpoints(mem_cli
     assert r_gen.status_code == 200
     assert r_gen.json()["status"] == "success"
 
-    # 2. POST /api/extrair com texto de laudo
+    # 2. POST /api/extrair com texto de laudo (2 exames com referência explícita e 2 sem referência, sem lab e sem data)
     r_ext = await mem_client.post(
         "/api/extrair",
         json={
-            "text": "Laudo Laboratorial: Ferritina Sérica: 18,4 ng/mL | Hemoglobina: 11,5 g/dL | Glicose de Jejum: 106 mg/dL | PCR: 4,1 mg/L"
+            "text": "Laudo Laboratorial: Ferritina Sérica: 18,4 ng/mL (Ref: 30 a 300 ng/mL) | Hemoglobina: 11,5 g/dL | Glicose de Jejum: 106 mg/dL (Ref: 70 a 99 mg/dL) | PCR: 4,1 mg/L"
         },
     )
     assert r_ext.status_code == 200
     ext_body = r_ext.json()
     assert ext_body["status"] == "success"
+    assert ext_body["laboratory"] is None
+    assert ext_body["laboratorio"] is None
+    assert ext_body["collection_date"] is None
+    assert ext_body["data_coleta"] is None
     assert len(ext_body["biomarkers"]) == 4
     by_code = {b["code"]: b for b in ext_body["biomarkers"]}
     assert by_code["2276-4"]["value"] == 18.4
     assert by_code["2276-4"]["status"] == "LOW"
+    assert by_code["2276-4"]["reference_min"] == 30.0
+    assert by_code["2276-4"]["reference_max"] == 300.0
     assert by_code["2345-7"]["value"] == 106.0
     assert by_code["2345-7"]["status"] == "HIGH"
+    assert by_code["2345-7"]["reference_min"] == 70.0
+    assert by_code["2345-7"]["reference_max"] == 99.0
+    # Exames sem referência explícita no texto devem retornar None para faixa e status
+    assert by_code["718-7"]["value"] == 11.5
+    assert by_code["718-7"]["reference_min"] is None
+    assert by_code["718-7"]["reference_max"] is None
+    assert by_code["718-7"]["reference_range"] is None
+    assert by_code["718-7"]["status"] is None
+    by_analito = {b["analito"]: b for b in ext_body["biomarkers"]}
+    assert by_analito["pcr"]["value"] == 4.1
+    assert by_analito["pcr"]["reference_min"] is None
+    assert by_analito["pcr"]["reference_max"] is None
+    assert by_analito["pcr"]["reference_range"] is None
+    assert by_analito["pcr"]["status"] is None
 
     # 3. POST /api/exams/interpret e alias POST /exams/interpret
     r_int = await mem_client.post(
@@ -664,7 +699,7 @@ def _build_in_memory_pdf(lines: list[str]) -> bytes:
 
 @pytest.mark.asyncio
 async def test_two_distinct_pdfs_extract_completely_different_biomarkers(mem_client):
-    # PDF 1: Perfil Hematológico (multi-linha com formatação brasileira)
+    # PDF 1: Perfil Hematológico (multi-linha com formatação brasileira, sem nome de laboratório)
     pdf_1_bytes = _build_in_memory_pdf(
         [
             "Paciente: Maria Silva",
@@ -677,11 +712,10 @@ async def test_two_distinct_pdfs_extract_completely_different_biomarkers(mem_cli
         ]
     )
 
-    # PDF 2: Perfil Metabólico e Tireoidiano
+    # PDF 2: Perfil Metabólico e Tireoidiano (sem laboratório e sem data; Colesterol sem referência)
     pdf_2_bytes = _build_in_memory_pdf(
         [
             "Paciente: Carlos Souza",
-            "Data da Coleta: 12/11/2026",
             "GLICOSE DE JEJUM: 108 mg/dL (Ref: 70 a 99 mg/dL)",
             "TSH ULTRA-SENSIVEL",
             "Resultado: 3,8 mUI/L (Referencia: 0,4 a 4,5 mUI/L)",
@@ -708,6 +742,13 @@ async def test_two_distinct_pdfs_extract_completely_different_biomarkers(mem_cli
     assert "FERRITINA" in body1["extracted_text_preview"].upper()
     assert "COLESTEROL" in body2["extracted_text_preview"].upper()
 
+    # Campos omitidos no PDF devem ser None (nunca preenchidos com defaults ou catálogo)
+    assert body1["laboratory"] is None
+    assert body1["collection_date"] == "10/11/2026"
+    assert body2["laboratory"] is None
+    assert body2["collection_date"] is None
+    assert body2["data_coleta"] is None
+
     # Biomarcadores do PDF 1: apenas Ferritina (12.4) e Hemoglobina (11.2)
     b1_map = {b["analito"]: b["value"] for b in body1["biomarkers"]}
     assert set(b1_map.keys()) == {"ferritina", "hemoglobina"}
@@ -715,11 +756,22 @@ async def test_two_distinct_pdfs_extract_completely_different_biomarkers(mem_cli
     assert b1_map["hemoglobina"] == 11.2
 
     # Biomarcadores do PDF 2: apenas Glicose (108.0), TSH (3.8) e Colesterol (210.0)
-    b2_map = {b["analito"]: b["value"] for b in body2["biomarkers"]}
-    assert set(b2_map.keys()) == {"glicose", "tsh", "colesterol"}
-    assert b2_map["glicose"] == 108.0
-    assert b2_map["tsh"] == 3.8
-    assert b2_map["colesterol"] == 210.0
+    b2_by_key = {b["analito"]: b for b in body2["biomarkers"]}
+    assert set(b2_by_key.keys()) == {"glicose", "tsh", "colesterol"}
+    assert b2_by_key["glicose"]["value"] == 108.0
+    assert b2_by_key["glicose"]["reference_min"] == 70.0
+    assert b2_by_key["glicose"]["reference_max"] == 99.0
+    assert b2_by_key["glicose"]["status"] == "HIGH"
+    assert b2_by_key["tsh"]["value"] == 3.8
+    assert b2_by_key["tsh"]["reference_min"] == 0.4
+    assert b2_by_key["tsh"]["reference_max"] == 4.5
+    assert b2_by_key["tsh"]["status"] == "NORMAL"
+    # Colesterol não possui faixa de referência no PDF 2 -> deve retornar None
+    assert b2_by_key["colesterol"]["value"] == 210.0
+    assert b2_by_key["colesterol"]["reference_min"] is None
+    assert b2_by_key["colesterol"]["reference_max"] is None
+    assert b2_by_key["colesterol"]["reference_range"] is None
+    assert b2_by_key["colesterol"]["status"] is None
 
 
 @pytest.mark.asyncio

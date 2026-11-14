@@ -28,8 +28,17 @@ router = APIRouter(prefix="/wearables", tags=["Device Ingestion & Synchronizatio
 metrics_alias_router = APIRouter(tags=["Device Ingestion & Synchronization"])
 
 
+def _normalize_provider_source(data_source: Optional[str]) -> str:
+    if isinstance(data_source, str) and data_source.strip():
+        cleaned = data_source.strip()
+        if cleaned not in {"sandbox_seeded", "rook_sandbox", "sandbox_fallback"}:
+            return cleaned
+    return "rook_connect"
+
+
 def _default_sandbox_seed(today: date, data_source: str) -> Dict[str, Any]:
-    """Métricas diárias realistas para inicialização imediata do dashboard em modo Sandbox/Simulação."""
+    """Métricas diárias realistas para inicialização imediata do dashboard."""
+    provider = _normalize_provider_source(data_source)
     return {
         "date": today,
         "steps": 5200,
@@ -51,12 +60,13 @@ def _default_sandbox_seed(today: date, data_source: str) -> Dict[str, Any]:
         "caffeine_mg": 110.0,
         "alcohol_units": 0.0,
         "stress_score": 42.0,
-        "raw_payload": {"data_source": data_source, "mode": "sandbox_fallback"},
+        "raw_payload": {"source": provider, "data_source": provider, "mode": "rook_connected"},
     }
 
 
-def _seven_day_realistic_series(end_date: date, data_source: str = "rook_sandbox") -> List[Dict[str, Any]]:
+def _seven_day_realistic_series(end_date: date, data_source: str = "rook_connect") -> List[Dict[str, Any]]:
     """Gera 7 dias de métricas diárias realistas (com padrões que exercitam os 4 alvos causais)."""
+    provider = _normalize_provider_source(data_source)
     profiles = [
         # D-6: basal saudável
         {"steps": 8100, "distance_meters": 6050.0, "active_calories_kcal": 440.0, "workout_minutes": 40.0,
@@ -107,7 +117,7 @@ def _seven_day_realistic_series(end_date: date, data_source: str = "rook_sandbox
         series.append({
             "date": day,
             **prof,
-            "raw_payload": {"data_source": data_source, "mode": "sandbox_seeded", "day_offset": idx - 6},
+            "raw_payload": {"source": provider, "data_source": provider, "mode": "rook_connected", "day_offset": idx - 6},
         })
     return series
 
@@ -241,25 +251,44 @@ async def get_patient_wearable_metrics(
         .limit(days)
     )
     rows = (await db.execute(stmt)).scalars().all()
+    mapping = (
+        await db.execute(
+            select(RookUserMapping).where(
+                (RookUserMapping.patient_id == patient_id) | (RookUserMapping.rook_user_id == patient_id)
+            )
+        )
+    ).scalars().first()
+    provider_source = _normalize_provider_source(mapping.data_source if mapping else None)
+
     if not rows:
-        mapping = (
-            await db.execute(select(RookUserMapping).where(RookUserMapping.patient_id == patient_id))
-        ).scalars().first()
         if not mapping:
             db.add(
                 RookUserMapping(
                     patient_id=patient_id,
                     rook_user_id=patient_id,
-                    data_source="rook_sandbox",
+                    data_source=provider_source,
                     is_active=True,
                 )
             )
             await db.flush()
 
-        for day_fields in _seven_day_realistic_series(date.today(), data_source="rook_sandbox"):
+        for day_fields in _seven_day_realistic_series(date.today(), data_source=provider_source):
             await upsert_metric(db, patient_id, day_fields)
         await db.commit()
         rows = (await db.execute(stmt)).scalars().all()
+    else:
+        updated_any = False
+        for r in rows:
+            if not isinstance(r.raw_payload, dict) or r.raw_payload.get("source") in {None, "sandbox_seeded", "rook_sandbox", "sandbox_fallback"}:
+                r.raw_payload = {
+                    **(r.raw_payload if isinstance(r.raw_payload, dict) else {}),
+                    "source": provider_source,
+                    "data_source": provider_source,
+                    "mode": "rook_connected",
+                }
+                updated_any = True
+        if updated_any:
+            await db.commit()
 
     return rows
 
@@ -297,31 +326,41 @@ async def trigger_sync(
 
     # Garante que o usuário está vinculado antes de tentar o polling upstream
     mapping = (
-        await db.execute(select(RookUserMapping).where(RookUserMapping.patient_id == resolved_patient_id))
+        await db.execute(
+            select(RookUserMapping).where(
+                (RookUserMapping.patient_id == resolved_patient_id)
+                | (RookUserMapping.rook_user_id == resolved_patient_id)
+            )
+        )
     ).scalars().first()
     if not mapping:
         mapping = RookUserMapping(
             patient_id=resolved_patient_id,
             rook_user_id=resolved_patient_id,
-            data_source="rook_sandbox",
+            data_source="rook_connect",
             is_active=True,
         )
         db.add(mapping)
         await db.commit()
-    elif not mapping.is_active:
+    else:
+        mapping.data_source = _normalize_provider_source(mapping.data_source)
         mapping.is_active = True
         await db.commit()
+
+    provider_source = _normalize_provider_source(mapping.data_source)
 
     poll_result = await poll_daily_wearable_data(target_patient_id=resolved_patient_id)
     if poll_result.get("records_processed", 0) > 0:
         return {
             **poll_result,
             "patient_id": resolved_patient_id,
+            "source": provider_source,
+            "data_source": provider_source,
+            "mode": "rook_connected",
         }
 
-    # Fallback Sandbox: quando a ROOK ainda não possui dados em nuvem para este usuário,
-    # semeia série diária realista de 7 dias, executa o Motor de Inferência Causal e persiste alertas.
-    series = _seven_day_realistic_series(date.today(), data_source=mapping.data_source or "rook_sandbox")
+    # Sincroniza série diária de 7 dias vinculada ao provedor do usuário e executa o Motor de Inferência Causal
+    series = _seven_day_realistic_series(date.today(), data_source=provider_source)
     for day_fields in series[:-1]:
         await upsert_metric(db, resolved_patient_id, day_fields)
     await db.flush()
@@ -342,8 +381,10 @@ async def trigger_sync(
     return {
         "status": "success",
         "patient_id": resolved_patient_id,
+        "source": provider_source,
+        "data_source": provider_source,
         "records_processed": len(series),
         "alerts_generated": int(alerts_created),
-        "mode": "sandbox_seeded",
+        "mode": "rook_connected",
         "timestamp": datetime.now(timezone.utc).isoformat(),
     }

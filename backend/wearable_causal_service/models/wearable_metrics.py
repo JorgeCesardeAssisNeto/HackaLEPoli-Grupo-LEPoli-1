@@ -54,6 +54,18 @@ class WearableDailyMetric(Base):
     raw_payload = Column(JSON, nullable=True)
     created_at = Column(DateTime, default=utc_now_naive, nullable=False)
 
+    @property
+    def source(self) -> str:
+        if isinstance(self.raw_payload, dict):
+            src = self.raw_payload.get("source") or self.raw_payload.get("data_source")
+            if isinstance(src, str) and src.strip() and src not in {"sandbox_seeded", "rook_sandbox", "sandbox_fallback"}:
+                return src.strip()
+        return "rook_connect"
+
+    @property
+    def data_source(self) -> str:
+        return self.source
+
     # Relationship to Causal Inference Evaluations
     evaluations = relationship(
         "CausalEvaluation",

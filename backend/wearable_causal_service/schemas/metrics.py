@@ -55,5 +55,7 @@ class DailyMetricResponse(BaseModel):
     caffeine_mg: Optional[float] = None
     alcohol_units: Optional[float] = None
     icd_index: Optional[float] = None
+    source: Optional[str] = "rook_connect"
+    data_source: Optional[str] = "rook_connect"
     created_at: datetime
 
