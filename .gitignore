@@ -1,0 +1,26 @@
+# Node / frontend
+node_modules/
+dist/
+build/
+coverage/
+.next/
+.vite/
+.tanstack/
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+
+# Local secrets and environment files
+.env
+.env.*
+!.env.example
+
+# Local/editor/OS files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
