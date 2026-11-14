@@ -309,7 +309,9 @@ async def test_authorizer_sandbox_fallback_and_mobile_sources(mem_client, monkey
     body = resp.json()
     assert body["user_id"] == "user-sandbox-1"
     assert body["data_source"] == "apple_health"
-    assert body["authorization_url"] is None
+    assert body["authorization_url"] == "https://connections.rook-connect.review/client_uuid/9bc48033-9d8e-45b4-8c6a-1ef162951442/user-sandbox-1" or (
+        body["authorization_url"] == "https://connections.rook-connect.review/client_uuid/9bc48033-9d8e-45b4-8c6a-1ef162951442/user_id/user-sandbox-1"
+    )
     assert body["connected"] is True
     assert body["mode"] == "sandbox_fallback"
 
@@ -534,10 +536,9 @@ async def test_authorizer_connection_page_url_and_v1_path_fallback(mem_client, m
     fb_body = r_fb.json()
     assert fb_body["mode"] == "sandbox_fallback"
     assert fb_body["connected"] is True
-    assert (
-        fb_body["connection_page_url"]
-        == f"https://connections.rook-connect.review/client_uuid/{DEFAULT_ROOK_CLIENT_UUID}/user_id/user-conn-1"
-    )
+    expected_conn_url = f"https://connections.rook-connect.review/client_uuid/{DEFAULT_ROOK_CLIENT_UUID}/user_id/user-conn-1"
+    assert fb_body["connection_page_url"] == expected_conn_url
+    assert fb_body["authorization_url"] == expected_conn_url
 
     # 2. Quando /api/v1/... retorna 404 e /v1/... retorna 200 com authorizer_url
     monkeypatch.setattr(settings, "ROOK_API_BASE_URL", ROOK_SANDBOX_BASE_URL)
@@ -623,4 +624,101 @@ async def test_clinical_rag_conhecimento_extrair_and_interpret_endpoints(mem_cli
     )
     assert r_int_alias.status_code == 200
     assert r_int_alias.json()["status"] == "success"
+
+
+def _build_in_memory_pdf(lines: list[str]) -> bytes:
+    """Constrói um PDF válido em memória usando pypdf com fonte Type1 Helvetica para extração real."""
+    import io
+    from pypdf import PdfWriter
+    from pypdf.generic import DecodedStreamObject, DictionaryObject, NameObject
+
+    writer = PdfWriter()
+    page = writer.add_blank_page(width=595, height=842)
+
+    font_dict = DictionaryObject(
+        {
+            NameObject("/Type"): NameObject("/Font"),
+            NameObject("/Subtype"): NameObject("/Type1"),
+            NameObject("/BaseFont"): NameObject("/Helvetica"),
+        }
+    )
+    resources = DictionaryObject({NameObject("/Font"): DictionaryObject({NameObject("/F1"): font_dict})})
+    page[NameObject("/Resources")] = resources
+
+    ops = ["BT", "/F1 12 Tf", "50 780 Td"]
+    for idx, line in enumerate(lines):
+        if idx > 0:
+            ops.append("0 -18 Td")
+        escaped = line.replace("\\", "\\\\").replace("(", "\\(").replace(")", "\\)")
+        ops.append(f"({escaped}) Tj")
+    ops.append("ET")
+
+    stream = DecodedStreamObject()
+    stream.set_data("\n".join(ops).encode("latin-1", errors="ignore"))
+    page[NameObject("/Contents")] = writer._add_object(stream)
+
+    buf = io.BytesIO()
+    writer.write(buf)
+    return buf.getvalue()
+
+
+@pytest.mark.asyncio
+async def test_two_distinct_pdfs_extract_completely_different_biomarkers(mem_client):
+    # PDF 1: Perfil Hematológico (multi-linha com formatação brasileira)
+    pdf_1_bytes = _build_in_memory_pdf(
+        [
+            "Paciente: Maria Silva",
+            "Data da Coleta: 10/11/2026",
+            "FERRITINA SERICA",
+            "Resultado: 12,4 ng/mL",
+            "Valores de Referencia: 30,0 a 300,0 ng/mL",
+            "HEMOGLOBINA",
+            "Valor obtido: 11,2 g/dL   Referencia: 12,0 a 16,5 g/dL",
+        ]
+    )
+
+    # PDF 2: Perfil Metabólico e Tireoidiano
+    pdf_2_bytes = _build_in_memory_pdf(
+        [
+            "Paciente: Carlos Souza",
+            "Data da Coleta: 12/11/2026",
+            "GLICOSE DE JEJUM: 108 mg/dL (Ref: 70 a 99 mg/dL)",
+            "TSH ULTRA-SENSIVEL",
+            "Resultado: 3,8 mUI/L (Referencia: 0,4 a 4,5 mUI/L)",
+            "COLESTEROL TOTAL ............. 210 mg/dL",
+        ]
+    )
+
+    r1 = await mem_client.post(
+        "/api/extrair",
+        files={"file": ("laudo_hemato.pdf", pdf_1_bytes, "application/pdf")},
+    )
+    assert r1.status_code == 200
+    body1 = r1.json()
+
+    r2 = await mem_client.post(
+        "/api/extrair",
+        files={"arquivo": ("laudo_metabolico.pdf", pdf_2_bytes, "application/pdf")},
+    )
+    assert r2.status_code == 200
+    body2 = r2.json()
+
+    # Hashes e previews devem ser distintos
+    assert body1["document_hash"] != body2["document_hash"]
+    assert "FERRITINA" in body1["extracted_text_preview"].upper()
+    assert "COLESTEROL" in body2["extracted_text_preview"].upper()
+
+    # Biomarcadores do PDF 1: apenas Ferritina (12.4) e Hemoglobina (11.2)
+    b1_map = {b["analito"]: b["value"] for b in body1["biomarkers"]}
+    assert set(b1_map.keys()) == {"ferritina", "hemoglobina"}
+    assert b1_map["ferritina"] == 12.4
+    assert b1_map["hemoglobina"] == 11.2
+
+    # Biomarcadores do PDF 2: apenas Glicose (108.0), TSH (3.8) e Colesterol (210.0)
+    b2_map = {b["analito"]: b["value"] for b in body2["biomarkers"]}
+    assert set(b2_map.keys()) == {"glicose", "tsh", "colesterol"}
+    assert b2_map["glicose"] == 108.0
+    assert b2_map["tsh"] == 3.8
+    assert b2_map["colesterol"] == 210.0
+
 

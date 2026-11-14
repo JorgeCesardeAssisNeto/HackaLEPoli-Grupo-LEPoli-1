@@ -211,7 +211,7 @@ async def get_authorizer(
     return {
         "user_id": rook_user_id,
         "data_source": data_source,
-        "authorization_url": None,
+        "authorization_url": connection_page_url,
         "connection_page_url": connection_page_url,
         "connected": True,
         "mode": "sandbox_fallback",
