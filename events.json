@@ -1,0 +1,117 @@
+{
+  "schema_version": 1,
+  "events": {
+    "project.briefing_exported": {
+      "event_schema_version": 1,
+      "description": "Doctor exported the clinical briefing as PDF or FHIR.",
+      "privacy": {
+        "contains_pii": false,
+        "purpose": "product_analytics"
+      },
+      "properties_schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "format",
+          "lab_count"
+        ],
+        "properties": {
+          "format": {
+            "type": "string",
+            "enum": [
+              "pdf",
+              "fhir"
+            ]
+          },
+          "lab_count": {
+            "type": "integer"
+          }
+        }
+      }
+    },
+    "project.consent_changed": {
+      "event_schema_version": 1,
+      "description": "Patient granted or revoked an institution's data access.",
+      "privacy": {
+        "contains_pii": false,
+        "purpose": "product_analytics"
+      },
+      "properties_schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "active"
+        ],
+        "properties": {
+          "active": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    "project.exam_result_added": {
+      "event_schema_version": 1,
+      "description": "Patient added a simulated scanned exam result to the timeline.",
+      "privacy": {
+        "contains_pii": false,
+        "purpose": "product_analytics"
+      },
+      "properties_schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "used_own_file"
+        ],
+        "properties": {
+          "used_own_file": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    "project.journey_selected": {
+      "event_schema_version": 1,
+      "description": "User switched to the patient or doctor journey.",
+      "privacy": {
+        "contains_pii": false,
+        "purpose": "product_analytics"
+      },
+      "properties_schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "journey"
+        ],
+        "properties": {
+          "journey": {
+            "type": "string",
+            "enum": [
+              "patient",
+              "doctor"
+            ]
+          }
+        }
+      }
+    },
+    "project.wearable_connected": {
+      "event_schema_version": 1,
+      "description": "Patient connected a simulated wearable device.",
+      "privacy": {
+        "contains_pii": false,
+        "purpose": "product_analytics"
+      },
+      "properties_schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "device"
+        ],
+        "properties": {
+          "device": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}
